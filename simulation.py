@@ -9,7 +9,7 @@ from main import scale_distance
 def generate_data(T, N, W, p):
 
     
-    distribution = uniform.Uniform(torch.Tensor([0.0]),torch.Tensor([0.001]))
+    distribution = uniform.Uniform(torch.Tensor([0.0001]),torch.Tensor([0.0003]))
     X = distribution.sample((N,))
 
     # predict delta_X
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     X = generate_data(100, N, W, p)
     print(X)
 
-    np.save('data/data_sim_log.npy', X) 
+    np.save('data/data_sim.npy', X) 
     
 
 

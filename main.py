@@ -69,34 +69,15 @@ class Model(nn.Module):
 
         # Defining some parameters
         w = torch.empty(input_size * input_size, 1)
-        self.weights = nn.Parameter(nn.init.xavier_uniform_(w))
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w))
+        self.layer_norm = nn.LayerNorm(self.weights.shape)
     def forward(self, dx):
         self.g.requires_grad = False
-        w = torch.matmul(self.g, self.weights**2)
-        w = (w - w.mean())/ w.std()
-        w = w.reshape(self.N, self.N)
-        z = w @ dx
-        return z
-
-def batch_predict(input, idx, indices, F, N, train=True):
-    pred = []
-    if not train:
-        idx = tqdm(idx)
-    for b in idx:
-    # select component time steps
-        t = indices[b, :]
-        # compute weight for each step
-        w = torch.t(F[:, 0]).reshape(-1, N, N)
-        # normalize W
-        # w = torch.softmax(-w, dim=1) 
-        # select batch input 
-        dx = torch.t(input[b, :, :]).unsqueeze(-1)
-        # compute sum(WX)
-        Z = w @ dx 
-        # Z = moving_average_standardize(Z, p)
-        pred.append(Z.sum(0).reshape(1,-1))
-    pred = torch.cat(pred, axis=0)
-    return pred
+        w = torch.matmul(self.g, self.weights ** 2)
+        w = self.layer_norm(w)
+        f = w.reshape(self.N, self.N)
+        z = f @ dx
+        return z, w
 
 
 
@@ -111,7 +92,7 @@ def train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     N, T = DX.shape   
     
     model = Model(N, g)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -129,7 +110,8 @@ def train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         for idx in tqdm(loader): 
             y = target[idx,]
             dx = input[idx, ]
-            pred = model(dx).squeeze(-1)
+            pred, _ = model(dx)
+            pred = pred.squeeze(-1)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
             loss.backward()
@@ -159,7 +141,8 @@ def forecast(X, DX, d, p, model_path, forecast_path, until, shape, device='cpu')
     loss_fn = nn.MSELoss()
     
     print('Predicting ...')
-    pred = model(input).squeeze(-1)
+    pred, F = model(input)
+    pred = pred.squeeze(-1)
     loss = loss_fn(pred, target)
 
     print('Forecasting ...')
@@ -168,7 +151,8 @@ def forecast(X, DX, d, p, model_path, forecast_path, until, shape, device='cpu')
     # Forecast the next [until] steps
     for _ in tqdm(range(until)):
         x = pred[-p:, :].unsqueeze(-1)
-        Z = model(x).squeeze(-1)
+        Z, _ = model(x)
+        Z = Z.squeeze(-1)
         # Z = moving_average_standardize(Z, p)
         # new_pred = Z.sum(0).reshape(1,-1)
         pred = torch.cat((pred, Z), dim=0)
@@ -178,8 +162,6 @@ def forecast(X, DX, d, p, model_path, forecast_path, until, shape, device='cpu')
 
 
     out = np.concatenate((X[:, :1], pred), axis=1)
-    F = torch.matmul(model.g, model.weights ** 2)
-    F = (F - F.mean())/ F.std()
 
     print(loss)
     if forecast_path:
@@ -190,9 +172,9 @@ def forecast(X, DX, d, p, model_path, forecast_path, until, shape, device='cpu')
 if __name__ == "__main__":
 
     sample_path = 'data/sample_small.pickle'
-    data_path = 'data/data_sim_log.npy'
-    model_path = 'model/sim_log.pt'
-    forecast_path = 'output/sim_log.pickle'
+    data_path = 'data/data_sim.npy'
+    model_path = 'model/sim.pt'
+    forecast_path = 'output/sim.pickle'
 
     X = np.load(data_path)
     N, T = X.shape
@@ -200,7 +182,7 @@ if __name__ == "__main__":
 
     train_size = int(0.8 * T)
     batch_size = 100
-    epochs = 10000
+    epochs = 5000
     lr = 0.01
     until = int(0.2 * T)
     p = 1
@@ -215,7 +197,7 @@ if __name__ == "__main__":
     # DX = X_train[:, 1:] - X_train[:, :-1] 
     DX = torch.from_numpy(DX).float()
 
-    shape = 'concave_inc'
+    shape = 'monotone_inc'
 
     if sys.argv[1] == 'train':
         train(DX, norm_d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
