@@ -125,43 +125,31 @@ def train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
         torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
 
-def forecast(X, DX, d, p, model_path, forecast_path, until, shape, device='cpu'):
+def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
     
     #  Intialize model
-    N, T = DX.shape 
+    N, _ = X.shape 
     
     model = Model(N, g)
     load_model(model, None, model_path, device)
     model.eval()
 
-    input, target = generate_data(DX, p)
+    Xts = torch.from_numpy(X).float()
+    input, target = generate_data(Xts, p)
     loss_fn = nn.MSELoss()
     
     print('Predicting ...')
     pred, F = model(input)
     pred = pred.squeeze(-1)
     loss = loss_fn(pred, target)
+ 
+    pred = torch.t(pred)
+    out = torch.cat((Xts[:, :1], pred), dim=-1)
 
-    print('Forecasting ...')
-
-
-    # Forecast the next [until] steps
-    for _ in tqdm(range(until)):
-        x = pred[-p:, :].unsqueeze(-1)
-        Z, _ = model(x)
-        Z = Z.squeeze(-1)
-        # Z = moving_average_standardize(Z, p)
-        # new_pred = Z.sum(0).reshape(1,-1)
-        pred = torch.cat((pred, Z), dim=0)
-        
-    pred = pred.detach().numpy().transpose()
-
-
-
-    out = np.concatenate((X[:, :1], pred), axis=1)
+    out = out.detach().numpy()
 
     print(loss)
     if forecast_path:
@@ -202,7 +190,7 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(DX, norm_d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast(X, DX, norm_d, p, model_path, forecast_path, until, shape)
+        forecast(X, norm_d, p, model_path, forecast_path, shape)
 
 
 
