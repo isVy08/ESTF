@@ -39,11 +39,12 @@ def basis_function(d, shape):
     g = []
     for i in range(m):
         if shape == 'monotone_inc':
-            a = d > sorted_d[i]
-            g.append(a.astype('float'))
+            a = (d >= sorted_d[i]).astype('float')
+            b = int(sorted_d[i] <= 0) 
+            g.append(a - b)
         elif shape == 'concave_inc':
             a = (d <= sorted_d[i]).astype('float')
-            gx = np.multiply(d-sorted_d[i], a) + sorted_d[i]
+            gx = np.multiply(d-sorted_d[i], a) + sorted_d[i] * int(sorted_d[i] >= 0) 
             g.append(gx)
 
     return np.stack(g, axis=1)
@@ -70,11 +71,10 @@ class Model(nn.Module):
         # Defining some parameters
         w = torch.empty(input_size * input_size, 1)
         self.weights = nn.Parameter(nn.init.xavier_normal_(w))
-        self.layer_norm = nn.LayerNorm(self.weights.shape)
     def forward(self, dx):
         self.g.requires_grad = False
         w = torch.matmul(self.g, self.weights ** 2)
-        w = self.layer_norm(w)
+        w = (w - w.min()) / (w.max() - w.min()) 
         f = w.reshape(self.N, self.N)
         z = f @ dx
         return z, w
@@ -161,8 +161,8 @@ if __name__ == "__main__":
 
     sample_path = 'data/sample_small.pickle'
     data_path = 'data/data_sim.npy'
-    model_path = 'model/sim.pt'
-    forecast_path = 'output/sim.pickle'
+    model_path = 'model/sim_abs.pt'
+    forecast_path = 'output/sim_abs.pickle'
 
     X = np.load(data_path)
     N, T = X.shape
@@ -185,7 +185,7 @@ if __name__ == "__main__":
     # DX = X_train[:, 1:] - X_train[:, :-1] 
     DX = torch.from_numpy(DX).float()
 
-    shape = 'monotone_inc'
+    shape = 'concave_inc'
 
     if sys.argv[1] == 'train':
         train(DX, norm_d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
