@@ -2,7 +2,6 @@ import scipy.io
 import numpy as np
 import random, os
 from pygam import GAM, s
-from tqdm import tqdm
 from utils import *
 
 
@@ -38,10 +37,10 @@ def estimate(d, y, cons='convex', dist='normal', link='identity'):
 
 if __name__ == "__main__":
 
-    input_size = 50
-    sample_path = "sample.pickle",
+    input_size = 30
+    sample_path = "data/sample.pickle"
     data_path = "data/data.npy"
-    source_path = "mine_data.mat"
+    source_path = "data/mine_data.mat"
 
     
     if os.path.isfile(sample_path):

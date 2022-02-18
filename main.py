@@ -6,16 +6,6 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 
 
-def scale_distance(d, range=None):
-    if range is None:
-        return d
-    from sklearn.preprocessing import MinMaxScaler
-    d = d.reshape(-1, 1)
-    scaler = MinMaxScaler(feature_range=range)
-    norm_d = scaler.fit_transform(d)
-    return norm_d
-
-
 def load_model(model, optimizer, model_path, device):
     checkpoint = torch.load(model_path, map_location=device)
     model.load_state_dict(checkpoint['model_state_dict'])
@@ -103,7 +93,7 @@ def train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     # Generate data 
     input, target = generate_data(DX, p)
-    loader = DataLoader(list(range(T-p)), batch_size=batch_size)
+    loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     for epoch in range(1, epochs + 1):
         losses = 0
@@ -156,31 +146,34 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
         write_pickle([X, out, F], forecast_path)
     
     
+def scale(X, max_, min_):
+    X_std = (X - X.min(axis=1).reshape(-1,1)) / ((X.max(axis=1) - X.min(axis=1)).reshape(-1,1))
+    X_std = X_std * (max_ - min_) + min_
+    return X_std
 
 if __name__ == "__main__":
 
-    sample_path = 'data/sample_small.pickle'
-    data_path = 'data/data_sim.npy'
-    model_path = 'model/sim.pt'
-    forecast_path = 'output/sim.pickle'
-
-    X = np.load(data_path)
-    N, T = X.shape
+    sample_path = 'data/sample.pickle'
+    data_path = 'data/data.npy'
+    model_path = 'model/mine.pt'
+    forecast_path = 'output/mine.pickle'
 
 
-    train_size = int(0.8 * T)
+    train_size = 4000
     batch_size = 100
-    epochs = 5000
+    epochs = 1000
     lr = 0.01
-    until = int(0.2 * T)
+    
     p = 1
 
-    
-    
+
+    X = np.load(data_path)
     _, d, _ = load_pickle(sample_path)
-    norm_d = scale_distance(d, None)
+
+    X_std = scale(X, 0.3, 0)
+    d_norm = scale(d.reshape(1,-1), 0.3, 0).reshape(-1)
         
-    X_train = X[:, :train_size]
+    X_train = X_std[:, :train_size]
     DX = X_train
     # DX = X_train[:, 1:] - X_train[:, :-1] 
     DX = torch.from_numpy(DX).float()
@@ -188,9 +181,9 @@ if __name__ == "__main__":
     shape = 'monotone_inc'
 
     if sys.argv[1] == 'train':
-        train(DX, norm_d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
+        train(DX, d_norm, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast(X, norm_d, p, model_path, forecast_path, shape)
+        forecast(X_std, d_norm, p, model_path, forecast_path, shape)
 
 
 

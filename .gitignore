@@ -1,0 +1,8 @@
+.DS_Store
+data/
+model/
+output/
+viz
+r-script.ipynb
+viz.ipynb
+__pycache__
