@@ -11,8 +11,8 @@ dir = 'DCRNN/data/STVAR/'
 data = np.load('data/data.npy')
 N, T = data.shape
 
-data = scale(data, 0.3, 0)
-d_norm = scale(d.reshape(1,-1), 0.3, 0).reshape(-1)
+# data = scale(data, 0.3, 0)
+# d = scale(d.reshape(1,-1), 0.3, 0).reshape(-1)
 
 # .h5 file
 df = pd.DataFrame(data.transpose())
@@ -35,6 +35,7 @@ for _ in range(1, T):
     index.append(t) 
 
 df.index = index
+
 df.to_hdf(dir + 'stvar.h5', key='df')
 
 
@@ -54,7 +55,7 @@ for i in range(N):
     for j in range(N):
         dis_df["from"].append(ids[i])
         dis_df["to"].append(ids[j])
-        dis_df["cost"].append(d_norm[cnt])
+        dis_df["cost"].append(round(d[cnt],3))
         cnt += 1
 
 pd.DataFrame.from_dict(dis_df).to_csv(dir + 'distances.csv', index=False)
@@ -62,3 +63,6 @@ pd.DataFrame.from_dict(dis_df).to_csv(dir + 'distances.csv', index=False)
 # python -m scripts.generate_training_data --output_dir=data/STVAR --traffic_df_filename=data/STVAR/stvar.h5
 # python -m scripts.gen_adj_mx  --sensor_ids_filename=data/STVAR/graph_location_ids.txt --distances_filename=data/STVAR/distances.csv --normalized_k=0.1 --output_pkl_filename=data/STVAR/adj_mx.pkl 
 # python dcrnn_train_pytorch.py --config_filename=data/model/stvar.yaml --use_cpu_only=True
+# python run_evaluation.py --split=val --use_cpu_only=True --config_filename=data/model/stvar.yaml --output_filename=data/STVAR/dcrnn_val_predictions.npz
+
+
