@@ -1,20 +1,25 @@
+import sys
 import numpy as np
 import pandas as pd
-from main import scale
+
 from utils import load_pickle
 """
 Module to transform data to be compatible with baselines
 """
 
+# Load original data
 ids, d, _ = load_pickle('data/sample.pickle')
 dir = 'DCRNN/data/STVAR/'
 data = np.load('data/data.npy')
 N, T = data.shape
 
-# data = scale(data, 0.3, 0)
-# d = scale(d.reshape(1,-1), 0.3, 0).reshape(-1)
+if sys.argv[0] in ['y', 'yes']:
+    from main import scale
+    data = scale(data, 0.3, 0)
+    d = scale(d.reshape(1,-1), 0.3, 0).reshape(-1)
 
-# .h5 file
+# Write .h5 file
+print('Writing .h5 file ...')
 df = pd.DataFrame(data.transpose())
 df.columns = ids
 t = pd.Timestamp(2022, 3, 1, 0, 0, 0)
