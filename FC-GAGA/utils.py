@@ -56,11 +56,11 @@ class MetricsCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs={}):
         prediction_val = self.model.predict({"history": self.validation_data["x"][...,0], 
                                              "node_id": self.validation_data["node_id"],
-                                             "time_of_day": self.validation_data["x"][...,1]})
+                                             "time_of_day": self.validation_data["x"][...,0]})
         
         prediction_test = self.model.predict({"history": self.test_data["x"][...,0], 
                                               "node_id": self.test_data["node_id"],
-                                              "time_of_day": self.test_data["x"][...,1]})
+                                              "time_of_day": self.test_data["x"][...,0]})
 
         logs['mae_val'] = masked_mae_np(preds=prediction_val['targets'], labels=self.validation_data['y'], null_val=0)
         logs['mae_test'] = masked_mae_np(preds=prediction_test['targets'], labels=self.test_data['y'], null_val=0)

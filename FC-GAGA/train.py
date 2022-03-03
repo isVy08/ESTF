@@ -20,9 +20,9 @@ print("Default FC-GAGA parameters:")
 print(hyperparams_dict)
 print("*********************************")
 
-hyperparams_dict["dataset"] = 'metr-la'
-hyperparams_dict["horizon"] = 12
-hyperparams_dict["history_length"] = 12
+hyperparams_dict["dataset"] = 'stvar'
+hyperparams_dict["horizon"] = 20
+hyperparams_dict["history_length"] = 20
 
 print("*********************************")
 print("LOADING DATA")

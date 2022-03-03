@@ -4,6 +4,8 @@ import os
 from itertools import product
 from typing import Dict, NamedTuple, Union
 from utils import MetricsCallback
+from keras.callbacks import ModelCheckpoint
+
 
 
 hyperparams_defaults = {
@@ -189,7 +191,7 @@ class FcGaga:
 
 
 class Trainer:
-    def __init__(self, hyperparams: Parameters, logdir: str):
+    def __init__(self, hyperparams: Parameters, logdir: str, model_path: str):
         inp = dict(hyperparams._asdict())
         values = [v if isinstance(v, list) else [v] for v in inp.values()]
         self.hyperparams = [Parameters(**dict(zip(inp.keys(), v))) for v in product(*values)]
@@ -205,6 +207,7 @@ class Trainer:
         self.forecasts = []
         self.models = []
         self.logdir = logdir
+        self.model_path = model_path
         self.folder_names = folder_names
         for i, h in enumerate(self.hyperparams): 
             self.models.append(FcGaga(hyperparams=h, name=f"fcgaga_model_{i}", 
@@ -216,7 +219,7 @@ class Trainer:
             batch = ds.get_batch(batch_size=hyperparams.batch_size)
             weights = np.all(batch["y"] > 0, axis=-1, keepdims=False).astype(np.float32)
             weights = weights / np.prod(weights.shape)
-            yield  {"history": batch["x"][...,0], "node_id": batch["node_id"], "time_of_day": batch["x"][...,1]}, \
+            yield  {"history": batch["x"][...,0], "node_id": batch["node_id"], "time_of_day": batch["x"][...,0]}, \
                    {"targets": batch["y"]}, \
                    weights                  
         
@@ -224,6 +227,7 @@ class Trainer:
         for i, hyperparams in enumerate(self.hyperparams):
             if verbose > 0:
                 print(f"Fitting model {i+1} out of {len(self.hyperparams)}, {self.folder_names[i]}")
+            checkpoint = ModelCheckpoint(self.model_path, monitor='val_loss', verbose=1, save_best_only=True, mode='max')
             
             boundary_step = hyperparams.epochs // 10
             boundary_start = hyperparams.epochs - boundary_step*hyperparams.decay_steps - 1
@@ -242,7 +246,7 @@ class Trainer:
                                          loss_weights={"targets": 1.0})
                         
             fit_output = self.models[i].model.fit(self.generator(ds=dataset, hyperparams=hyperparams),
-                                            callbacks=[lr, metrics], # tb
+                                            callbacks=[lr, metrics, checkpoint], # tb
                                             epochs=hyperparams.epochs, 
                                             steps_per_epoch=hyperparams.steps_per_epoch, 
                                             verbose=verbose)
