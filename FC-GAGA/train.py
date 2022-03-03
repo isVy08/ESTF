@@ -44,12 +44,20 @@ trainer = Trainer(hyperparams=hyperparams, logdir=LOGDIR)
 trainer.fit(dataset=dataset)
 
 # Save models
-best_model = trainer.models[-1] # ?
-tf.saved_model.save(best_model, 'model/fc-gaga.hdf5')
+best_model = trainer.models[0].model # ?
+# tf.saved_model.save(best_model, 'model/fc-gaga.hdf5')
+best_model.save_weights('model/fc-gaga.hdf5')
 
 
+# Load pre-trained model
+best_model = []
+from utils import MetricsCallback
+metrics = MetricsCallback(dataset=dataset, logdir=LOGDIR)
+predictions = best_model.predict({"history": metrics.full_data["x"][...,0], 
+                                    "node_id": metrics.full_data["node_id"],
+                                    "time_of_day": metrics.full_data["x"][...,0]})
 
-
+np.save(DATADIR + '/stvar/full_predictions.npy', predictions)
 
 print("*********************************")
 print("COMPUTING METRICS")

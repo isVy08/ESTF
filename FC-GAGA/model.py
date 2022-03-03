@@ -12,7 +12,7 @@ hyperparams_defaults = {
     "dataset": "stvar", 
     "repeat": list(range(2)),
     "epochs": [10], 
-    "steps_per_epoch": [200],  # 800 METR-LA, 800 PEMS-BAY
+    "steps_per_epoch": [100],  # 800 METR-LA, 800 PEMS-BAY
     "block_layers": 3,
     "hidden_units": 128,
     "blocks": 2,

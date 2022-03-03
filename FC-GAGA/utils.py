@@ -49,6 +49,8 @@ class MetricsCallback(tf.keras.callbacks.Callback):
                                                             split='val').__next__()
         self.test_data = dataset.get_sequential_batch(batch_size=len(dataset.data['x_test']),
                                                       split='test').__next__()
+        self.full_data = dataset.get_sequential_batch(batch_size=len(dataset.data['x_full']),
+                                                      split='full').__next__()
 
     def on_train_begin(self, logs={}):
         pass    
