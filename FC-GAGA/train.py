@@ -59,7 +59,7 @@ print("FULL PREDICTIONS")
 print("*********************************")
 from utils import MetricsCallback
 metrics = MetricsCallback(dataset=dataset, logdir=LOGDIR)
-predictions = model.predict({"history": metrics.full_data["x"][...,0], 
+predictions = best_model.predict({"history": metrics.full_data["x"][...,0], 
                                     "node_id": metrics.full_data["node_id"],
                                     "time_of_day": metrics.full_data["x"][...,0]})
 np.savez_compressed(

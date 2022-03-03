@@ -50,6 +50,7 @@ def generate_graph_seq2seq_io_data(
 
 
 def generate_train_val_test(args):
+    # df = pd.read_hdf('data/stvar.h5')
     df = pd.read_hdf(args.traffic_df_filename)
     zero_mask = (df > 0).astype(np.float32)
     df = df.replace(0, np.nan)
@@ -60,6 +61,10 @@ def generate_train_val_test(args):
         # np.concatenate(([-week_size + 1, -day_size + 1], np.arange(-11, 1, 1)))
         np.concatenate((np.arange(1-args.history_length, 1, 1),)) # -11, -5, -2
     )
+
+    # x_offsets = np.sort(np.concatenate((np.arange(1-20, 1, 1),)))
+    # y_offsets = np.sort(np.arange(1, 1+20, 1))
+
     # Predict the next one hour
     y_offsets = np.sort(np.arange(1, 1+args.horizon, 1)) # 4, 7, 13
     # x: (num_samples, input_length, num_nodes, input_dim)
