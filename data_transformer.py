@@ -71,6 +71,6 @@ if '3' in sys.argv[1]:
 # python -m scripts.generate_training_data --output_dir=data/STVAR --traffic_df_filename=data/STVAR/stvar.h5
 # python -m scripts.gen_adj_mx  --sensor_ids_filename=data/STVAR/graph_location_ids.txt --distances_filename=data/STVAR/distances.csv --normalized_k=0.1 --output_pkl_filename=data/STVAR/adj_mx.pkl 
 # python dcrnn_train_pytorch.py --config_filename=data/model/stvar.yaml --use_cpu_only=True
-# python run_evaluation.py --split=val --use_cpu_only=True --config_filename=data/model/stvar.yaml --output_filename=data/STVAR/dcrnn_val_predictions.npz
+# python run_evaluation.py --split=full --use_cpu_only=True --config_filename=data/model/stvar.yaml --output_filename=data/STVAR/dcrnn_full_predictions.npz
 
 

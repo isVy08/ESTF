@@ -43,6 +43,14 @@ print("*********************************")
 trainer = Trainer(hyperparams=hyperparams, logdir=LOGDIR)
 trainer.fit(dataset=dataset)
 
+# Save models
+best_model = trainer.models[-1] # ?
+tf.saved_model.save(best_model, 'model/fc-gaga.hdf5')
+
+
+
+
+
 print("*********************************")
 print("COMPUTING METRICS")
 print("*********************************")

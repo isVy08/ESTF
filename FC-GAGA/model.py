@@ -10,9 +10,9 @@ from keras.callbacks import ModelCheckpoint
 
 hyperparams_defaults = {
     "dataset": "stvar", 
-    "repeat": list(range(5)),
-    "epochs": [100], 
-    "steps_per_epoch": [800],  # 800 METR-LA, 800 PEMS-BAY
+    "repeat": list(range(2)),
+    "epochs": [10], 
+    "steps_per_epoch": [200],  # 800 METR-LA, 800 PEMS-BAY
     "block_layers": 3,
     "hidden_units": 128,
     "blocks": 2,
@@ -191,7 +191,7 @@ class FcGaga:
 
 
 class Trainer:
-    def __init__(self, hyperparams: Parameters, logdir: str, model_path: str):
+    def __init__(self, hyperparams: Parameters, logdir: str):
         inp = dict(hyperparams._asdict())
         values = [v if isinstance(v, list) else [v] for v in inp.values()]
         self.hyperparams = [Parameters(**dict(zip(inp.keys(), v))) for v in product(*values)]
@@ -207,7 +207,6 @@ class Trainer:
         self.forecasts = []
         self.models = []
         self.logdir = logdir
-        self.model_path = model_path
         self.folder_names = folder_names
         for i, h in enumerate(self.hyperparams): 
             self.models.append(FcGaga(hyperparams=h, name=f"fcgaga_model_{i}", 
@@ -227,7 +226,6 @@ class Trainer:
         for i, hyperparams in enumerate(self.hyperparams):
             if verbose > 0:
                 print(f"Fitting model {i+1} out of {len(self.hyperparams)}, {self.folder_names[i]}")
-            checkpoint = ModelCheckpoint(self.model_path, monitor='val_loss', verbose=1, save_best_only=True, mode='max')
             
             boundary_step = hyperparams.epochs // 10
             boundary_start = hyperparams.epochs - boundary_step*hyperparams.decay_steps - 1
@@ -246,7 +244,7 @@ class Trainer:
                                          loss_weights={"targets": 1.0})
                         
             fit_output = self.models[i].model.fit(self.generator(ds=dataset, hyperparams=hyperparams),
-                                            callbacks=[lr, metrics, checkpoint], # tb
+                                            callbacks=[lr, metrics], # tb
                                             epochs=hyperparams.epochs, 
                                             steps_per_epoch=hyperparams.steps_per_epoch, 
                                             verbose=verbose)
