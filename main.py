@@ -1,6 +1,7 @@
 import os, torch, sys
 from utils import *
 import numpy as np
+import pandas as pd
 import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
@@ -63,10 +64,12 @@ class Model(nn.Module):
         self.weights = nn.Parameter(nn.init.xavier_normal_(w))
     def forward(self, dx):
         self.g.requires_grad = False
-        w = torch.matmul(self.g, self.weights ** 2)
-        # w = (w - w.min()) / (w.max() - w.min()) 
-        f = w.reshape(self.N, self.N)
-        z = f @ dx
+        w = torch.matmul(self.g, self.weights ** 2) 
+        # w = torch.matmul(g, weights ** 2) 
+        
+        f = w.reshape(self.N, self.N) # add exponential term
+        ef = torch.softmax(-f, -1)
+        z = ef @ dx
         return z, w
 
 
@@ -154,15 +157,15 @@ def scale(X, max_, min_):
 if __name__ == "__main__":
 
     sample_path = 'data/sample.pickle'
-    data_path = 'data/data.npy'
-    model_path = 'model/mine.pt'
-    forecast_path = 'output/mine.pickle'
+    data_path = 'data/sim.npy'
+    model_path = 'model/sim.pt'
+    forecast_path = 'output/sim.pickle'
 
 
-    train_size = 4000
-    batch_size = 100
-    epochs = 1000
-    lr = 0.01
+    train_size = 400
+    batch_size = 300
+    epochs = 5000
+    lr = 0.1
     
     p = 1
 
@@ -170,8 +173,12 @@ if __name__ == "__main__":
     X = np.load(data_path)
     _, d, _ = load_pickle(sample_path)
 
-    X_std = scale(X, 0.3, 0)
-    d_norm = scale(d.reshape(1,-1), 0.3, 0).reshape(-1)
+    # X_std = scale(X, 0.3, 0)
+    X_std = X
+
+    # d_norm = scale(d.reshape(1,-1), 1, 0).reshape(-1)
+    d_norm = d
+    
         
     X_train = X_std[:, :train_size]
     DX = X_train
