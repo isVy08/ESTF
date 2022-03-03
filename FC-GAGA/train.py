@@ -40,24 +40,36 @@ print("*********************************")
 print("TRAINING MODELS")
 print("*********************************")
 
+MODEL_PATH = 'model/fc-gaga.hdf5'
 trainer = Trainer(hyperparams=hyperparams, logdir=LOGDIR)
-trainer.fit(dataset=dataset)
+if not os.path.isfile(MODEL_PATH):
 
-# Save models
-best_model = trainer.models[0].model # ?
-# tf.saved_model.save(best_model, 'model/fc-gaga.hdf5')
-best_model.save_weights('model/fc-gaga.hdf5')
+    trainer.fit(dataset=dataset)
 
+    # Save models
+    best_model = trainer.models[0].model # ?
+    best_model.save_weights(MODEL_PATH)
+else:
 
-# Load pre-trained model
-best_model = []
+    best_model = trainer.models[-1].model
+    best_model.load_weights(MODEL_PATH)
+
+print("*********************************")
+print("FULL PREDICTIONS")
+print("*********************************")
 from utils import MetricsCallback
 metrics = MetricsCallback(dataset=dataset, logdir=LOGDIR)
-predictions = best_model.predict({"history": metrics.full_data["x"][...,0], 
+predictions = model.predict({"history": metrics.full_data["x"][...,0], 
                                     "node_id": metrics.full_data["node_id"],
                                     "time_of_day": metrics.full_data["x"][...,0]})
+np.savez_compressed(
+    os.path.join(DATADIR + '/stvar/full_predictions.npz'),
+    input=metrics.full_data["x"],
+    truth=metrics.full_data["y"],
+    prediction=predictions['targets']
+    
+    )
 
-np.save(DATADIR + '/stvar/full_predictions.npy', predictions)
 
 print("*********************************")
 print("COMPUTING METRICS")
