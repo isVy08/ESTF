@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import time
-from google_drive_downloader import GoogleDriveDownloader as gdd
+# from google_drive_downloader import GoogleDriveDownloader as gdd
 import pathlib
 from generate_training_data import generate_train_val_test
 from typing import NamedTuple
