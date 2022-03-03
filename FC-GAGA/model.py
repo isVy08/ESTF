@@ -12,13 +12,13 @@ hyperparams_defaults = {
     "dataset": "stvar", 
     "repeat": list(range(2)),
     "epochs": [10], 
-    "steps_per_epoch": [100],  # 800 METR-LA, 800 PEMS-BAY
+    "steps_per_epoch": [800],  # 800 METR-LA, 800 PEMS-BAY
     "block_layers": 3,
     "hidden_units": 128,
     "blocks": 2,
     "horizon": 20,
     "history_length": 20,
-    "init_learning_rate": 1e-3,
+    "init_learning_rate": 1e-4,
     "decay_steps": 3, 
     "decay_rate": 0.5,
     "batch_size": 60,

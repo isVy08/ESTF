@@ -40,35 +40,14 @@ print("*********************************")
 print("TRAINING MODELS")
 print("*********************************")
 
-MODEL_PATH = 'model/fc-gaga.hdf5'
+
 trainer = Trainer(hyperparams=hyperparams, logdir=LOGDIR)
-if not os.path.isfile(MODEL_PATH):
+trainer.fit(dataset=dataset)
 
-    trainer.fit(dataset=dataset)
-
+for i in range(len(trainer.models)):
     # Save models
-    best_model = trainer.models[0].model # ?
-    best_model.save_weights(MODEL_PATH)
-else:
-
-    best_model = trainer.models[-1].model
-    best_model.load_weights(MODEL_PATH)
-
-print("*********************************")
-print("FULL PREDICTIONS")
-print("*********************************")
-from utils import MetricsCallback
-metrics = MetricsCallback(dataset=dataset, logdir=LOGDIR)
-predictions = best_model.predict({"history": metrics.full_data["x"][...,0], 
-                                    "node_id": metrics.full_data["node_id"],
-                                    "time_of_day": metrics.full_data["x"][...,0]})
-np.savez_compressed(
-    os.path.join(DATADIR + '/stvar/full_predictions.npz'),
-    input=metrics.full_data["x"],
-    truth=metrics.full_data["y"],
-    prediction=predictions['targets']
-    
-    )
+    model = trainer.models[i].model
+    model.save_weights(f'model/fc-gaga-{i}.hdf5')
 
 
 print("*********************************")
@@ -104,3 +83,19 @@ print()
 print("Average MAE:", early_stop_mae_h_ave)
 print("Average MAPE:", early_stop_mape_h_ave)
 print("Average RMSE:", early_stop_rmse_h_ave)
+
+
+# FULL PREDICTIONS
+
+# from utils import MetricsCallback
+# metrics = MetricsCallback(dataset=dataset, logdir=LOGDIR)
+# predictions = best_model.predict({"history": metrics.full_data["x"][...,0], 
+#                                     "node_id": metrics.full_data["node_id"],
+#                                     "time_of_day": metrics.full_data["x"][...,0]})
+# np.savez_compressed(
+#     os.path.join(DATADIR + '/stvar/full_predictions.npz'),
+#     input=metrics.full_data["x"],
+#     truth=metrics.full_data["y"],
+#     prediction=predictions['targets']
+    
+#     )
