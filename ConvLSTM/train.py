@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-
-
+import os
 import numpy as np
 from keras.models import Sequential
 from keras.layers.convolutional import Conv3D
@@ -8,8 +7,13 @@ from keras.layers.convolutional_recurrent import ConvLSTM2D
 from tensorflow.keras.layers import BatchNormalization
 from keras.callbacks import ModelCheckpoint
 
-def main(row, col, horizon=20, batch_size=60, epochs=50):
+def main():
     dir = './data/'
+    
+    horizon = 20
+    batch_size = 60
+    epochs = 5
+    row, col = 10, 3
 
     x = {}
     y = {}
@@ -51,8 +55,15 @@ def main(row, col, horizon=20, batch_size=60, epochs=50):
     seq.fit(x['train'], y['train'], batch_size=batch_size, epochs=epochs, 
                 validation_data=(x['val'], y['val']),
                 callbacks = [checkpoint])
-                
-
+    predictions = seq.predict(x['full'], verbose=1, batch_size=batch_size)
+    np.savez_compressed(
+    os.path.join(dir + 'full_predictions.npz'),
+    input=x["full"].squeeze(-1),
+    truth=y["full"].squeeze(-1),
+    prediction=predictions.squeeze(-1)
+    
+    )
+    
 
 if __name__ == '__main__':
     main()
