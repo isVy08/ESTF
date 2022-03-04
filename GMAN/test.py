@@ -2,8 +2,8 @@ import torch
 import time
 import math
 import numpy as np
-from utils.utils_ import log_string, metric
-from utils.utils_ import load_data
+from utils_ import log_string, metric
+from utils_ import load_data
 
 def test(args, log):
     (fullX, fullTE, fullY, SE) = load_data(args)

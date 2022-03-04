@@ -82,16 +82,17 @@ class STEmbedding(nn.Module):
         SE = SE.unsqueeze(0).unsqueeze(0)
         SE = self.FC_se(SE)
         # temporal embedding
-        dayofweek = torch.empty(TE.shape[0], TE.shape[1], 7)
+        # dayofweek = torch.empty(TE.shape[0], TE.shape[1], 7)
         timeofday = torch.empty(TE.shape[0], TE.shape[1], T)
-        for i in range(TE.shape[0]):
-            dayofweek[i] = F.one_hot(TE[..., 0][i].to(torch.int64) % 7, 7)
+        # for i in range(TE.shape[0]):
+        #     dayofweek[i] = F.one_hot(TE[..., 0][i].to(torch.int64) % 7, 7)
         for j in range(TE.shape[0]):
-            timeofday[j] = F.one_hot(TE[..., 1][j].to(torch.int64) % 288, T)
-        TE = torch.cat((dayofweek, timeofday), dim=-1)
+            timeofday[j] = F.one_hot(TE[..., 0][j].to(torch.int64) % 288, T)
+        # TE = torch.cat((dayofweek, timeofday), dim=-1)
+        TE = timeofday
         TE = TE.unsqueeze(dim=2)
         TE = self.FC_te(TE)
-        del dayofweek, timeofday
+        del timeofday
         return SE + TE
 
 

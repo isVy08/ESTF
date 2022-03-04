@@ -1,7 +1,7 @@
 import time
 import datetime
 from utils_ import log_string
-from model.model_ import *
+from model_ import *
 from utils_ import load_data
 
 
