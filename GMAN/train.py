@@ -1,8 +1,8 @@
 import time
 import datetime
-from utils.utils_ import log_string
+from utils_ import log_string
 from model.model_ import *
-from utils.utils_ import load_data
+from utils_ import load_data
 
 
 def train(model, args, log, loss_criterion, optimizer, scheduler):

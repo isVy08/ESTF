@@ -1,4 +1,4 @@
-
+import sys
 import argparse
 import time
 import torch.optim as optim
@@ -78,5 +78,7 @@ parameters = count_parameters(model)
 log_string(log, 'trainable parameters: {:,}'.format(parameters))
 
 if __name__ == '__main__':
-    loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler) 
-    # test(args, log)
+    if sys.argv[1] == 'train':
+        loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler) 
+    else:
+        test(args, log)
