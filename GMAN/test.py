@@ -1,13 +1,16 @@
 import torch
-import time
 import math
+import time, os
 import numpy as np
+from tqdm import tqdm
 from utils_ import log_string, metric
 from utils_ import load_data
 
 def test(args, log):
-    (fullX, fullTE, fullY, SE) = load_data(args)
+    (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
+     testY, fullX, fullTE, fullY, SE) = load_data(args)
     num_samples, _, num_vertex = fullX.shape
+    num_batch = math.ceil(num_samples / args.batch_size)
  
     model = torch.load(args.model_file)
 
@@ -21,7 +24,7 @@ def test(args, log):
     with torch.no_grad():
 
         Pred = []
-        for batch_idx in range(train_num_batch):
+        for batch_idx in tqdm(range(num_batch)):
             start_idx = batch_idx * args.batch_size
             end_idx = min(num_samples, (batch_idx + 1) * args.batch_size)
             X = fullX[start_idx: end_idx]
@@ -37,8 +40,9 @@ def test(args, log):
                (test_mae, test_rmse, test_mape * 100))
     log_string(log, 'performance in each prediction step')
     MAE, RMSE, MAPE = [], [], []
+    print(Pred.shape)
     for step in range(args.num_pred):
-        mae, rmse, mape = metric(Pred[:, step], Y[:, step])
+        mae, rmse, mape = metric(Pred[:, step], fullY[:, step])
         MAE.append(mae)
         RMSE.append(rmse)
         MAPE.append(mape)
@@ -50,6 +54,7 @@ def test(args, log):
     log_string(
         log, 'average:         %.2f\t\t%.2f\t\t%.2f%%' %
              (average_mae, average_rmse, average_mape * 100))
+    print('Saving predictions')
     np.savez_compressed(
     os.path.join('data/full_predictions.npz'),
     input=fullX,

@@ -13,8 +13,8 @@ from train import train
 from test import test
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--training', type=bool, default=True,
-                    help='Whether to train or to test')
+parser.add_argument('--mode', type=str, default='train',
+                    help='whether to train or evaluate')
 parser.add_argument('--time_slot', type=int, default=5,
                     help='a time step is 5 mins')
 parser.add_argument('--num_his', type=int, default=20,
@@ -35,7 +35,7 @@ parser.add_argument('--test_ratio', type=float, default=0.2,
                     help='testing set [default : 0.2]')
 parser.add_argument('--batch_size', type=int, default=60,
                     help='batch size')
-parser.add_argument('--max_epoch', type=int, default=10,
+parser.add_argument('--max_epoch', type=int, default=1,
                     help='epoch to run')
 parser.add_argument('--patience', type=int, default=10,
                     help='patience for early stop')
@@ -57,11 +57,13 @@ log_string(log, str(args)[10: -1])
 T = 24 * 60 // args.time_slot  # Number of time steps in one day
 # load data
 log_string(log, 'loading data...')
-(trainX, trainTE, trainY, valX, valTE, valY, testX, testTE, testY, SE) = load_data(args)
+(trainX, trainTE, trainY, valX, valTE, valY, testX, testTE, testY, fullX, fullY, fullTE, SE) = load_data(args)
+log_string(log, f'fullX: {fullX.shape}\t\t fullY: {fullY.shape}')
 log_string(log, f'trainX: {trainX.shape}\t\t trainY: {trainY.shape}')
 log_string(log, f'valX:   {valX.shape}\t\tvalY:   {valY.shape}')
 log_string(log, f'testX:   {testX.shape}\t\ttestY:   {testY.shape}')
 log_string(log, f'trainTE:   {trainTE.shape}\t\tvalTE:   {valTE.shape}')
+log_string(log, f'testTE:   {testTE.shape}\t\tfullTE:   {fullTE.shape}')
 log_string(log, 'data loaded!')
 del trainX, trainTE, valX, valTE, testX, testTE
 # build model
@@ -78,6 +80,10 @@ parameters = count_parameters(model)
 log_string(log, 'trainable parameters: {:,}'.format(parameters))
 
 if __name__ == '__main__':
-    loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler) 
-    print(loss_train, loss_val)
-    # test(args, log)
+    if args.mode == 'train':
+        loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler) 
+        print(loss_train, loss_val)
+    elif args.mode == 'val':
+        test(args, log)
+    else:
+        print('Train or Val ?')

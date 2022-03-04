@@ -9,7 +9,7 @@ from utils_ import load_data
 def train(model, args, log, loss_criterion, optimizer, scheduler):
 
     (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE,
-     testY, SE) = load_data(args)
+     testY, fullX, fullTE, fullY, SE) = load_data(args)
 
     num_train, _, num_vertex = trainX.shape
     log_string(log, '**** training model ****')
@@ -70,7 +70,6 @@ def train(model, args, log, loss_criterion, optimizer, scheduler):
                 TE = valTE[start_idx: end_idx]
                 label = valY[start_idx: end_idx]
                 pred = model(X, TE)
-                pred = pred * std + mean
                 loss_batch = loss_criterion(pred, label)
                 val_loss += loss_batch * (end_idx - start_idx)
                 del X, TE, label, pred, loss_batch
@@ -97,5 +96,5 @@ def train(model, args, log, loss_criterion, optimizer, scheduler):
 
     model.load_state_dict(best_model_wts)
     torch.save(model, args.model_file)
-    log_string(log, f'Training and validation are completed, and model has been stored as {args.model_file}')
+    log_string(log, f'Training is completed, and model has been stored as {args.model_file}')
     return train_total_loss, val_total_loss

@@ -69,32 +69,27 @@ def load_data(args):
 
     fullTE =  seq2instance(timeofday, args.num_his, args.num_pred)
     fullTE = torch.cat(fullTE, 1).type(torch.int32)
-
-    
-    if args.training:
     # Traffic
+
+    train_steps = 3000
+    test_steps = round(args.test_ratio * num_step)
+    val_steps = num_step - train_steps - test_steps
+
+    # X, Y
     
-        train_steps = 3000
-        test_steps = round(args.test_ratio * num_step)
-        val_steps = num_step - train_steps - test_steps
 
-        # X, Y
-        
+    trainX, trainY = fullX[:train_steps,], fullY[:train_steps,]
+    valX, valY = fullX[train_steps:train_steps+val_steps,], fullY[train_steps:train_steps+val_steps,]
+    testX, testY = fullX[-test_steps:], fullY[-test_steps:]
 
-        trainX, trainY = fullX[:train_steps,], fullY[:train_steps,]
-        valX, valY = fullX[train_steps:train_steps+val_steps,], fullY[train_steps:train_steps+val_steps,]
-        testX, testY = fullX[-test_steps:], fullY[-test_steps:]
+    # shape = (num_sample, num_his + num_pred, 2)
 
-        # shape = (num_sample, num_his + num_pred, 2)
-    
-        trainTE = fullTE[:train_steps, ]
-        valTE = fullTE[train_steps:train_steps+val_steps,]
-        testTE = fullTE[-test_steps:]
+    trainTE = fullTE[:train_steps, ]
+    valTE = fullTE[train_steps:train_steps+val_steps,]
+    testTE = fullTE[-test_steps:]
 
-        return (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE, testY, SE)
-    else:
-         
-        return (fullX, fullTE, fullY, SE)
+    return (trainX, trainTE, trainY, valX, valTE, valY, testX, testTE, testY, fullX, fullTE, fullY, SE)
+
         
 
 
