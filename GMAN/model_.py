@@ -77,7 +77,7 @@ class STEmbedding(nn.Module):
             input_dims=[295, D], units=[D, D], activations=[F.relu, None],
             bn_decay=bn_decay)  # input_dims = time step per day + days per week=288+7=295
 
-    def forward(self, SE, TE, T=288):
+    def forward(self, SE, TE, T=295):
         # spatial embedding
         SE = SE.unsqueeze(0).unsqueeze(0)
         SE = self.FC_se(SE)

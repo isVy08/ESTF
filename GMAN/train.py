@@ -1,4 +1,5 @@
 import time
+from tqdm import tqdm 
 import datetime
 from utils_ import log_string
 from model_ import *
@@ -36,7 +37,7 @@ def train(model, args, log, loss_criterion, optimizer, scheduler):
         start_train = time.time()
         model.train()
         train_loss = 0
-        for batch_idx in range(train_num_batch):
+        for batch_idx in tqdm(range(train_num_batch)):
             start_idx = batch_idx * args.batch_size
             end_idx = min(num_train, (batch_idx + 1) * args.batch_size)
             X = trainX[start_idx: end_idx]
@@ -44,7 +45,6 @@ def train(model, args, log, loss_criterion, optimizer, scheduler):
             label = trainY[start_idx: end_idx]
             optimizer.zero_grad()
             pred = model(X, TE)
-            pred = pred * std + mean
             loss_batch = loss_criterion(pred, label)
             train_loss += float(loss_batch) * (end_idx - start_idx)
             loss_batch.backward()
@@ -63,7 +63,7 @@ def train(model, args, log, loss_criterion, optimizer, scheduler):
         val_loss = 0
         model.eval()
         with torch.no_grad():
-            for batch_idx in range(val_num_batch):
+            for batch_idx in tqdm(range(val_num_batch)):
                 start_idx = batch_idx * args.batch_size
                 end_idx = min(num_val, (batch_idx + 1) * args.batch_size)
                 X = valX[start_idx: end_idx]
