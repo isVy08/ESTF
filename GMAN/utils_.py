@@ -60,7 +60,7 @@ def load_data(args):
     if args.training:
     # Traffic
     
-        train_steps = round(args.train_ratio * num_step)
+        train_steps = 3000
         test_steps = round(args.test_ratio * num_step)
         val_steps = num_step - train_steps - test_steps
         train = traffic[: train_steps]

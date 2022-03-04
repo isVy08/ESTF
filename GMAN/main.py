@@ -6,7 +6,7 @@ import torch.nn as nn
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils_ import log_string, plot_train_val_loss
+from utils_ import log_string
 from utils_ import count_parameters, load_data
 
 from model_ import GMAN
@@ -16,9 +16,9 @@ from test import test
 parser = argparse.ArgumentParser()
 parser.add_argument('--time_slot', type=int, default=5,
                     help='a time step is 5 mins')
-parser.add_argument('--num_his', type=int, default=12,
+parser.add_argument('--num_his', type=int, default=20,
                     help='history steps')
-parser.add_argument('--num_pred', type=int, default=12,
+parser.add_argument('--num_pred', type=int, default=20,
                     help='prediction steps')
 parser.add_argument('--L', type=int, default=1,
                     help='number of STAtt Blocks')
@@ -34,7 +34,7 @@ parser.add_argument('--test_ratio', type=float, default=0.2,
                     help='testing set [default : 0.2]')
 parser.add_argument('--batch_size', type=int, default=32,
                     help='batch size')
-parser.add_argument('--max_epoch', type=int, default=1,
+parser.add_argument('--max_epoch', type=int, default=10,
                     help='epoch to run')
 parser.add_argument('--patience', type=int, default=10,
                     help='patience for early stop')
@@ -42,11 +42,11 @@ parser.add_argument('--learning_rate', type=float, default=0.001,
                     help='initial learning rate')
 parser.add_argument('--decay_epoch', type=int, default=10,
                     help='decay epoch')
-parser.add_argument('--traffic_file', default='./data/pems-bay.h5',
+parser.add_argument('--traffic_file', default='./data/stvar.h5',
                     help='traffic file')
-parser.add_argument('--SE_file', default='./data/SE(PeMS).txt',
+parser.add_argument('--SE_file', default='./data/SE.txt',
                     help='spatial embedding file')
-parser.add_argument('--model_file', default='./data/GMAN.pkl',
+parser.add_argument('--model_file', default='./model/GMAN.pt',
                     help='save the model to disk')
 parser.add_argument('--log_file', default='./data/log',
                     help='log file')
@@ -78,36 +78,5 @@ parameters = count_parameters(model)
 log_string(log, 'trainable parameters: {:,}'.format(parameters))
 
 if __name__ == '__main__':
-    start = time.time()
-    loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler)
-    plot_train_val_loss(loss_train, loss_val, 'figure/train_val_loss.png')
-    trainPred, valPred, testPred = test(args, log)
-    end = time.time()
-    log_string(log, 'total time: %.1fmin' % ((end - start) / 60))
-    log.close()
-    trainPred_ = trainPred.numpy().reshape(-1, trainY.shape[-1])
-    trainY_ = trainY.numpy().reshape(-1, trainY.shape[-1])
-    valPred_ = valPred.numpy().reshape(-1, valY.shape[-1])
-    valY_ = valY.numpy().reshape(-1, valY.shape[-1])
-    testPred_ = testPred.numpy().reshape(-1, testY.shape[-1])
-    testY_ = testY.numpy().reshape(-1, testY.shape[-1])
-
-    # Save training, validation and testing datas to disk
-    l = [trainPred_, trainY_, valPred_, valY_, testPred_, testY_]
-    name = ['trainPred', 'trainY', 'valPred', 'valY', 'testPred', 'testY']
-    for i, data in enumerate(l):
-        np.savetxt('./figure/' + name[i] + '.txt', data, fmt='%s')
-        
-    # Plot the test prediction vs target（optional)
-    plt.figure(figsize=(10, 280))
-    for k in range(325):
-        plt.subplot(325, 1, k + 1)
-        for j in range(len(testPred)):
-            c, d = [], []
-            for i in range(12):
-                c.append(testPred[j, i, k])
-                d.append(testY[j, i, k])
-            plt.plot(range(1 + j, 12 + 1 + j), c, c='b')
-            plt.plot(range(1 + j, 12 + 1 + j), d, c='r')
-    plt.title('Test prediction vs Target')
-    plt.savefig('./figure/test_results.png')
+    loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler) 
+    # test(args, log)
