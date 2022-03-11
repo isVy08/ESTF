@@ -27,7 +27,7 @@ parser.add_argument('--K', type=int, default=8,
                     help='number of attention heads')
 parser.add_argument('--d', type=int, default=8,
                     help='dims of each head attention outputs')
-parser.add_argument('--train_size', type=float, default=300,
+parser.add_argument('--train_size', type=int, default=300,
                     help='training set [default : 300]')
 parser.add_argument('--val_ratio', type=float, default=0.1,
                     help='validation set [default : 0.1]')

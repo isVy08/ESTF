@@ -1,0 +1,23 @@
+mode='val', time_slot=5, num_his=5, num_pred=5, L=1, K=8, d=8, train_size=300, val_ratio=0.1, test_ratio=0.2, batch_size=60, max_epoch=10, patience=10, learning_rate=0.001, decay_epoch=10, traffic_file='data/sim/stvar.h5', SE_file='data/sim/SE.txt', model_file='model/sim.pt', log_file='logs/sim_val'
+loading data...
+fullX: torch.Size([491, 5, 30])		 fullY: torch.Size([491, 10, 1])
+trainX: torch.Size([300, 5, 30])		 trainY: torch.Size([300, 5, 30])
+valX:   torch.Size([100, 5, 30])		valY:   torch.Size([100, 5, 30])
+testX:   torch.Size([100, 5, 30])		testY:   torch.Size([100, 5, 30])
+trainTE:   torch.Size([300, 10, 1])		valTE:   torch.Size([100, 10, 1])
+testTE:   torch.Size([100, 10, 1])		fullTE:   torch.Size([491, 5, 30])
+data loaded!
+compiling model...
+trainable parameters: 209,923
+**** testing model ****
+loading model from model/sim.pt
+model restored!
+evaluating...
+test             0.30		0.37		1677.02%
+performance in each prediction step
+step: 01         0.30		0.37		2003.10%
+step: 02         0.30		0.38		2130.17%
+step: 03         0.31		0.38		1469.34%
+step: 04         0.30		0.37		1825.76%
+step: 05         0.29		0.36		956.75%
+average:         0.30		0.37		1677.03%

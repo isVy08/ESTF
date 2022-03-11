@@ -9,10 +9,10 @@ from keras.callbacks import ModelCheckpoint
 
 def main():
     dir = sys.argv[1]
-    horizon = sys.argv[2]
-    batch_size = sys.argv[3]
+    horizon = int(sys.argv[2])
+    batch_size = int(sys.argv[3])
     
-    epochs = 5
+    epochs = 100
     row, col = 10, 3
 
     x = {}

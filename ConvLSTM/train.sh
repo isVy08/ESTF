@@ -1,0 +1,1 @@
+python train.py data/$1/ 5 $2

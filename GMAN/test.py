@@ -55,8 +55,9 @@ def test(args, log):
         log, 'average:         %.2f\t\t%.2f\t\t%.2f%%' %
              (average_mae, average_rmse, average_mape * 100))
     print('Saving predictions')
+    path = args.traffic_file.replace('stvar.h5','full_predictions.npz')
     np.savez_compressed(
-    os.path.join('data/full_predictions.npz'),
+    path,
     input=fullX,
     truth=fullY,
     prediction=Pred
