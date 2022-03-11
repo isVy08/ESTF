@@ -28,9 +28,9 @@ hyperparams_dict["horizon"] = 5
 hyperparams_dict["history_length"] = 5
 
 if dataset == 'mine':
-    hyperparams_dict["steps_per_epoch"] = 100
+    hyperparams_dict["steps_per_epoch"] = 150
 elif dataset == 'sim':
-    hyperparams_dict["steps_per_epoch"] = 50
+    hyperparams_dict["steps_per_epoch"] = 100
 
 print("*********************************")
 print("LOADING DATA")

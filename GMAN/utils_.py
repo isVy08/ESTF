@@ -71,7 +71,7 @@ def load_data(args):
     fullTE = torch.cat(fullTE, 1).type(torch.int32)
     # Traffic
 
-    train_steps = 3000
+    train_steps = args.train_size
     test_steps = round(args.test_ratio * num_step)
     val_steps = num_step - train_steps - test_steps
 
