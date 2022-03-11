@@ -7,16 +7,21 @@ from utils import load_pickle
 Module to transform data to be compatible with baselines
 """
 
-# Load original data
+# Load location indices
 ids, d, _ = load_pickle('data/sample.pickle')
-dir = 'DCRNN/data/STVAR/'
-data = np.load('data/data.npy')
+
+dir = sys.argv[1] # Location 
+
+if 'sim' in dir:
+    data = np.load('data/sim.npy')
+elif 'mine' in dir:
+    data_path = 'data/data.npy'
+    data = scale(data, 10, 0)
+
+
 N, T = data.shape
 
-    
-data = scale(data, 10, 0)
-
-if '1' in sys.argv[1]:
+if '1' in sys.argv[2]:
 
     # Write .h5 file
     print('Writing .h5 file ...')
@@ -43,18 +48,18 @@ if '1' in sys.argv[1]:
 
     df.to_hdf(dir + 'stvar.h5', key='df')
 
-if '2' in sys.argv[1]:
+if '2' in sys.argv[2]:
 
     # write location ids
     file = open(dir + 'graph_location_ids.txt', 'w+')
     for l in range(N):
         if l < N - 1:
-            file.write(str(sample[0][l]) + ',')
+            file.write(str(ids[l]) + ',')
         else:
-            file.write(str(sample[0][l]))
+            file.write(str(ids[l]))
     file.close()
 
-if '3' in sys.argv[1]:
+if '3' in sys.argv[2]:
 
     # write distance df
     dis_df = {"from": [], "to": [], "cost": []}

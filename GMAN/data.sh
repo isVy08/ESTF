@@ -1,2 +1,1 @@
-cp ../DC-RNN/data/mine/stvar.h5 ./data/mine/
-cp ../DC-RNN/data/sim/stvar.h5 ./data/sim/
+cp ../DC-RNN/data/$1/stvar.h5 ./data/$1/
