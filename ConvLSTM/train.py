@@ -12,7 +12,7 @@ def main():
     horizon = int(sys.argv[2])
     batch_size = int(sys.argv[3])
     
-    epochs = 100
+    epochs = int(sys.argv[4])
     row, col = 10, 3
 
     x = {}

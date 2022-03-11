@@ -28,7 +28,7 @@ hyperparams_dict["horizon"] = 5
 hyperparams_dict["history_length"] = 5
 
 if dataname == 'mine':
-    hyperparams_dict["steps_per_epoch"] = 150
+    hyperparams_dict["steps_per_epoch"] = 200
 elif dataname == 'sim':
     hyperparams_dict["steps_per_epoch"] = 100
 

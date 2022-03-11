@@ -1,0 +1,41 @@
+mode='train', time_slot=5, num_his=5, num_pred=5, L=1, K=8, d=8, train_size=3000, val_ratio=0.1, test_ratio=0.2, batch_size=60, max_epoch=1000, patience=10, learning_rate=0.001, decay_epoch=10, traffic_file='data/mine/stvar.h5', SE_file='data/mine/SE.txt', model_file='model/mine.pt', log_file='logs/mine_train'
+loading data...
+fullX: torch.Size([7311, 5, 30])		 fullY: torch.Size([7311, 10, 1])
+trainX: torch.Size([3000, 5, 30])		 trainY: torch.Size([3000, 5, 30])
+valX:   torch.Size([2856, 5, 30])		valY:   torch.Size([2856, 5, 30])
+testX:   torch.Size([1464, 5, 30])		testY:   torch.Size([1464, 5, 30])
+trainTE:   torch.Size([3000, 10, 1])		valTE:   torch.Size([2856, 10, 1])
+testTE:   torch.Size([1464, 10, 1])		fullTE:   torch.Size([7311, 5, 30])
+data loaded!
+compiling model...
+trainable parameters: 209,923
+**** training model ****
+2022-03-12 02:08:02 | epoch: 0001/1000, training time: 91.9s, inference time: 45.8s
+train loss: 0.3373, val_loss: 2.7213
+val loss decrease from inf to 2.7213, saving model to model/mine.pt
+2022-03-12 02:11:09 | epoch: 0002/1000, training time: 145.5s, inference time: 41.5s
+train loss: 0.1991, val_loss: 0.7137
+val loss decrease from 2.7213 to 0.7137, saving model to model/mine.pt
+2022-03-12 02:14:08 | epoch: 0003/1000, training time: 136.0s, inference time: 42.5s
+train loss: 0.1525, val_loss: 0.6472
+val loss decrease from 0.7137 to 0.6472, saving model to model/mine.pt
+2022-03-12 02:17:10 | epoch: 0004/1000, training time: 139.7s, inference time: 42.1s
+train loss: 0.1162, val_loss: 0.5922
+val loss decrease from 0.6472 to 0.5922, saving model to model/mine.pt
+2022-03-12 02:20:05 | epoch: 0005/1000, training time: 131.2s, inference time: 43.8s
+train loss: 0.0869, val_loss: 0.5734
+val loss decrease from 0.5922 to 0.5734, saving model to model/mine.pt
+2022-03-12 02:23:01 | epoch: 0006/1000, training time: 130.1s, inference time: 46.7s
+train loss: 0.0648, val_loss: 0.5677
+val loss decrease from 0.5734 to 0.5677, saving model to model/mine.pt
+2022-03-12 02:25:58 | epoch: 0007/1000, training time: 133.6s, inference time: 42.8s
+train loss: 0.0478, val_loss: 0.5532
+val loss decrease from 0.5677 to 0.5532, saving model to model/mine.pt
+2022-03-12 02:29:20 | epoch: 0008/1000, training time: 148.1s, inference time: 54.1s
+train loss: 0.0352, val_loss: 0.6041
+2022-03-12 02:32:40 | epoch: 0009/1000, training time: 152.9s, inference time: 46.8s
+train loss: 0.0261, val_loss: 0.5276
+val loss decrease from 0.5532 to 0.5276, saving model to model/mine.pt
+2022-03-12 02:35:46 | epoch: 0010/1000, training time: 144.3s, inference time: 41.7s
+train loss: 0.0191, val_loss: 0.4752
+val loss decrease from 0.5276 to 0.4752, saving model to model/mine.pt

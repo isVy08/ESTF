@@ -15,8 +15,8 @@ dir = sys.argv[1] # Location
 if 'sim' in dir:
     data = np.load('data/sim.npy')
 elif 'mine' in dir:
-    data_path = 'data/data.npy'
-    data = scale(data, 10, 0)
+    data = np.load('data/data.npy')
+    data = scale(data, 0.3, 0)
 
 
 N, T = data.shape
