@@ -1,0 +1,1 @@
+cp ../DC-RNN/mine/{train.npz, test.npz, val.npz, full.npz} ./data/
