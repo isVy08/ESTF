@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os
+import os, sys
 import numpy as np
 from keras.models import Sequential
 from keras.layers.convolutional import Conv3D
@@ -8,10 +8,10 @@ from tensorflow.keras.layers import BatchNormalization
 from keras.callbacks import ModelCheckpoint
 
 def main():
-    dir = './data/'
+    dir = sys.argv[1]
+    horizon = sys.argv[2]
+    batch_size = sys.argv[3]
     
-    horizon = 20
-    batch_size = 60
     epochs = 5
     row, col = 10, 3
 
@@ -48,8 +48,11 @@ def main():
     seq.compile(loss='mean_squared_error', optimizer='adadelta')
 
     # Train the network
+    if 'mine' in dir:
+        model_path = './model/ConvLSTM_mine.h5'
+    elif 'sim' in dir:
+        model_path = './model/ConvLSTM_sim.h5'
 
-    model_path = 'ConvLSTM.h5'
 
     checkpoint = ModelCheckpoint(model_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
     seq.fit(x['train'], y['train'], batch_size=batch_size, epochs=epochs, 

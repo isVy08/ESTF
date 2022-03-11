@@ -100,7 +100,10 @@ def generate_train_val_test(args):
     # for the rest: 7/8 is used for training, and 1/8 is used for validation.
     num_samples = x.shape[0]
     num_test = round(num_samples * 0.2)
-    num_train = 3000
+    if 'mine' in args.output_dir:
+        num_train = 3000
+    elif 'sim' in args.output_dir:
+        num_train = 300
     num_val = num_samples - num_test - num_train
 
     # train
@@ -138,19 +141,19 @@ if __name__ == "__main__":
     parser.add_argument(
         "--traffic_df_filename",
         type=str,
-        default="data/stvar.h5",
+        default="data/sim/stvar.h5",
         help="Raw traffic readings.",
     )
     parser.add_argument(
         "--horizon",
         type=int,
-        default=20,
+        default=5,
         help="The length of horison.",
     )
     parser.add_argument(
         "--history_length",
         type=int,
-        default=20,
+        default=5,
         help="The length of history.",
     )
     args = parser.parse_args()

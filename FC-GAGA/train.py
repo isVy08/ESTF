@@ -6,8 +6,10 @@ from dataset import Dataset
 from model import Trainer, Parameters
 from model import hyperparams_defaults as hyperparams_dict
 
-LOGDIR = "./logs"
-DATADIR = "./data"
+
+dataset = sys.argv[2]
+LOGDIR = f"./logs/{dataset}"
+DATADIR = f"./data/{dataset}"
 
 
 def insert_dict(d, k, v):
@@ -22,8 +24,13 @@ print(hyperparams_dict)
 print("*********************************")
 
 hyperparams_dict["dataset"] = 'stvar'
-hyperparams_dict["horizon"] = 20
-hyperparams_dict["history_length"] = 20
+hyperparams_dict["horizon"] = 5
+hyperparams_dict["history_length"] = 5
+
+if dataset == 'mine':
+    hyperparams_dict["steps_per_epoch"] = 100
+elif dataset == 'sim':
+    hyperparams_dict["steps_per_epoch"] = 50
 
 print("*********************************")
 print("LOADING DATA")
@@ -50,7 +57,7 @@ if sys.argv[1] == 'train':
     for i in range(len(trainer.models)):
         # Save models
         model = trainer.models[i].model
-        model.save_weights(f'model/fc-gaga-{i}.hdf5')
+        model.save_weights(f'model/{dataset}-{i}.hdf5')
 
 
     print("*********************************")
@@ -92,8 +99,10 @@ if sys.argv[1] == 'train':
 
 elif sys.argv[1] == 'val':
 
+    i = sys.argv[3]
+
     from utils import MetricsCallback
-    path = f'model/fc-gaga-{sys.argv[2]}.hdf5'
+    path = f'model/{dataset}-{i}.hdf5'
     metrics = MetricsCallback(dataset=dataset, logdir=LOGDIR)
     best_model = trainer.models[-1].model
     best_model.load_weights()
@@ -101,7 +110,7 @@ elif sys.argv[1] == 'val':
                                         "node_id": metrics.full_data["node_id"],
                                         "time_of_day": metrics.full_data["x"][...,0]})
     np.savez_compressed(
-        os.path.join(DATADIR + '/stvar/full_predictions.npz'),
+        os.path.join(DATADIR + '/full_predictions.npz'),
         input=metrics.full_data["x"],
         truth=metrics.full_data["y"],
         prediction=predictions['targets']
