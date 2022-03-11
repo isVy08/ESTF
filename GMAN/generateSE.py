@@ -36,6 +36,7 @@ def generate_adj_mx(output_file):
 
 
 if __name__ == "__main__":
+    import sys
     is_directed = False
     p = 2
     q = 1
@@ -45,8 +46,8 @@ if __name__ == "__main__":
     dimensions = 64
     window_size = 10
     iter = 1000
-    Adj_file = 'data/Adj.txt'
-    SE_file = 'data/SE.txt'
+    Adj_file = sys.argv[1]
+    SE_file = sys.argv[2]
 
     # Generate adjancency matrix
     generate_adj_mx(Adj_file)
