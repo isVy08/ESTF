@@ -42,50 +42,84 @@ def basis_function(d, shape):
 
 def generate_data(X, p):
     T = X.size(1)
-    input = []
-    target = []
-    # indices = []
-    for i in range(p, T):
+    input, target = [], []
+    input_indices, target_indices = [], []
+    target_mask = []
+
+    k = T // 1000
+
+    for i in range(p, T):        
+        target_mask.append(i // 1000)
         target.append(X[:, i])
+        target_indices.append(i)
         input.append(X[:, i-p:i])
-        # indices.append(torch.arange(i-p, i))
-    return torch.stack(input), torch.stack(target)
+        input_indices.append(list(range(i-p, i)))
+    return torch.stack(input), torch.tensor(input_indices).float(), torch.stack(target), torch.tensor(target_indices).float(), np.eye(k)[target_mask], k
 
 
 class Model(nn.Module):
-    def __init__(self, input_size, g):
+    def __init__(self, N, g, k):
+        """
+        k : number of shape functions
+        """
         super(Model, self).__init__()
 
         self.g = g
-        self.N = input_size
+        self.N = N
+        self.k = k
 
         # Defining some parameters
-        w = torch.empty(input_size * input_size, 1)
-        self.weights = nn.Parameter(nn.init.xavier_normal_(w))
-    def forward(self, dx):
+        w = torch.empty(k, N * N)
+        c = torch.empty(N, 1)
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w)) # [k, N, 1]
+        self.coefs = nn.Parameter(nn.init.xavier_normal_(c)) # [N, 1]
+
+    def forward(self, x, x_i, y_i, y_mask):
+        """
+        x : [b, N, p]
+        x_i : [b, N, p]
+        y_i : [b, N]
+        y_mask : [b, k] (one-hot)
+        """
         self.g.requires_grad = False
-        w = torch.matmul(self.g, self.weights ** 2) 
-        # w = torch.matmul(g, weights ** 2) 
+        wg = torch.matmul(self.weights ** 2, self.g) 
+        # wg = torch.matmul(weights ** 2, g)
+
+        w = torch.matmul(y_mask, wg)
         
-        f = w.reshape(self.N, self.N) # add exponential term
+        f = w.reshape(-1, self.N, self.N) # add exponential term
         ef = torch.softmax(-f, -1)
-        z = ef @ dx
-        z = z.sum(-1)
+        
+        # mu_t_k = self.mu_basis(x_i)
+        # x = x - torch.mul(mu_t_k, self.coefs)  # [b, N, p]
+        z = (ef @ x).sum(-1)
+
+        # mu_t = self.mu_basis(y_i).unsqueeze(-1)        
+        # z += torch.mul(mu_t, self.coefs).squeeze(-1)  # [b, N]
         return z, w
+    
+    def mu_basis(self, v):
+        return v ** 2
 
 
 
-def train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
+def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
     
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
     
-    #  Intialize model
-    N, T = DX.shape   
     
-    model = Model(N, g)
+    N, T = X.shape   
+
+    # Generate data 
+    # input :  [T - 1, N, 1]
+    input, input_indices, target, target_indices, target_mask, k = generate_data(X, p)
+    loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
+
+    #  Intialize model
+    model = Model(N, g, k)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -95,17 +129,18 @@ def train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     loss_fn = nn.MSELoss()
 
-    # Generate data 
-    input, target = generate_data(DX, p)
-    loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
-
     for epoch in range(1, epochs + 1):
         losses = 0
         for idx in tqdm(loader): 
-            y = target[idx,]
-            dx = input[idx, ]
-            pred, _ = model(dx)
-            pred = pred.squeeze(-1)
+            y = target[idx, ]
+            x = input[idx, ]
+            y_mask = torch.from_numpy(target_mask[idx, ]).float()
+            x_i, y_i = input_indices[idx, ], target_indices[idx, ]
+
+            x_i = torch.repeat_interleave(x_i.unsqueeze(1), N, 1)
+            y_i = torch.repeat_interleave(y_i.unsqueeze(1), N, 1)
+
+            pred, _ = model(x, x_i, y_i, y_mask)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
             loss.backward()
@@ -117,7 +152,7 @@ def train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         msg = f"Epoch: {epoch}, Train loss: {train_loss:.3f}"
         print(msg)
 
-        torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
+        # torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
 
 def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
@@ -132,7 +167,7 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     model.eval()
 
     Xts = torch.from_numpy(X).float()
-    input, target = generate_data(Xts, p)
+    input, input_indices, target, target_indices = generate_data(Xts, p)
     loss_fn = nn.MSELoss()
     
     print('Predicting ...')
@@ -157,41 +192,41 @@ def scale(X, max_, min_):
 
 if __name__ == "__main__":
 
+
     sample_path = 'data/sample.pickle'
-    data_path = 'data/sim.npy'
-    model_path = 'model/sim.pt'
-    forecast_path = 'output/sim.pickle'
+    data_path = 'data/nst_sim.npy'
+    model_path = 'model/nst_sim.pt'
+    forecast_path = 'output/nst_sim.pickle'
 
 
-    train_size = 400
-    batch_size = 300
+    train_size = 2000
+    batch_size = 100
     epochs = 5000
     lr = 0.1
     
-    p = 1
+    p = 5
 
 
-    X = np.load(data_path)
+    data = np.load(data_path)
     _, d, _ = load_pickle(sample_path)
 
-    # X_std = scale(X, 0.3, 0)
-    X_std = X
+    # data_std = scale(data, 1.0, -1.0)
+    data_std = data
+ 
 
     # d_norm = scale(d.reshape(1,-1), 1, 0).reshape(-1)
     d_norm = d
     
         
-    X_train = X_std[:, :train_size]
-    DX = X_train
-    # DX = X_train[:, 1:] - X_train[:, :-1] 
-    DX = torch.from_numpy(DX).float()
+    X = data_std[:, :train_size]
+    X = torch.from_numpy(X).float()
 
     shape = 'monotone_inc'
 
     if sys.argv[1] == 'train':
-        train(DX, d_norm, p, model_path, batch_size, epochs, lr, shape, device='cpu')
+        train(X, d_norm, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast(X_std, d_norm, p, model_path, forecast_path, shape)
+        forecast(data, d_norm, p, model_path, forecast_path, shape, k)
 
 
 
