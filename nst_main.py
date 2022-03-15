@@ -114,6 +114,8 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
+    F = np.log(d+1)
+    F = torch.from_numpy(F)
     
     
     N, T = X.shape   
@@ -133,9 +135,11 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         model.to(device)
 
     loss_fn = nn.MSELoss()
+    prev_loss = 1.0
 
     for epoch in range(1, epochs + 1):
-        losses = 0
+        train_losses = 0
+        val_losses = 0
         for idx in tqdm(loader): 
             y = target[idx, ]
             x = input[idx, ]
@@ -144,19 +148,24 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
             x_i, y_i = input_indices[idx, ], target_indices[idx, ]
 
-            pred, _ = model(x, x_mask, x_i, y_i)
+            pred, W = model(x, x_mask, x_i, y_i)
+            W = W.squeeze(-1)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
             loss.backward()
             
             optimizer.step()
-            losses += loss.item()
+            train_losses += loss.item()
+            val_losses += loss_fn(W, F).item()
 
-        train_loss = losses / len(loader)
-        msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}"
+        train_loss = train_losses / len(loader)
+        val_loss = val_losses / len(loader)
+        msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
         print(msg)
-
-        torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
+        if val_loss < prev_loss:
+            print('Saving model ...')
+            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
+            prev_loss = val_loss
 
 def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
@@ -208,8 +217,8 @@ if __name__ == "__main__":
 
     train_size = 3000
     batch_size = 100
-    epochs = 10000
-    lr = 1e-5
+    epochs = 100
+    lr = 1e-4
     
     p = 1
 
