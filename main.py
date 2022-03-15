@@ -141,7 +141,7 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     loss = loss_fn(pred, target)
  
     pred = torch.t(pred)
-    out = torch.cat((Xts[:, :1], pred), dim=-1)
+    out = torch.cat((Xts[:, :p], pred), dim=-1)
 
     out = out.detach().numpy()
 
@@ -159,16 +159,16 @@ if __name__ == "__main__":
 
     sample_path = 'data/sample.pickle'
     data_path = 'data/sim.npy'
-    model_path = 'model/sim.pt'
-    forecast_path = 'output/sim.pickle'
+    model_path = 'model/sim_p5.pt'
+    forecast_path = 'output/sim_p5.pickle'
 
 
     train_size = 400
     batch_size = 300
-    epochs = 5000
-    lr = 0.1
+    epochs = 100000
+    lr = 0.01
     
-    p = 1
+    p = 5
 
 
     X = np.load(data_path)

@@ -44,15 +44,21 @@ def generate_data(X, p):
     T = X.size(1)
     input, target = [], []
     input_mask = []
+    input_indices = []
 
     k = T // 1000
+    target_indices = torch.arange(p, T)
 
     for i in range(p, T):        
         target.append(X[:, i])
         mask = torch.div(torch.arange(i-p, i), 1000, rounding_mode='trunc')
-        input_mask.append(torch.eye(k)[mask])
+        input_mask.append(mask)
         input.append(X[:, i-p:i])
-    return torch.stack(input), torch.stack(target), torch.stack(input_mask), k
+        input_indices.append(torch.arange(i-p, i))
+    
+    
+
+    return torch.stack(input), torch.stack(target), torch.stack(input_mask), torch.stack(input_indices), target_indices, k
 
 
 class Model(nn.Module):
@@ -66,13 +72,12 @@ class Model(nn.Module):
         self.N = N
         self.k = k
 
-        # Defining some parameters
-        w = torch.empty(k, N * N)
-        c = torch.empty(N, 1)
-        self.weights = nn.Parameter(nn.init.xavier_normal_(w)) # [k, N, 1]
+        # Defining some parameters        
+        self.weights = nn.Parameter(nn.init.xavier_uniform_(torch.empty(k, N * N))) # [k, N, 1]
+        # c = torch.empty(N, 1)
         # self.coefs = nn.Parameter(nn.init.xavier_normal_(c)) # [N, 1]
 
-    def forward(self, x, x_mask):
+    def forward(self, x, x_mask, x_i, y_i):
         """
         x : [b, N, p]
         x_mask : [b, p, k] (one-hot)
@@ -80,29 +85,29 @@ class Model(nn.Module):
         self.g.requires_grad = False
         wg = torch.matmul(self.weights ** 2, self.g) 
         # wg = torch.matmul(weights ** 2, g)
+        x_i = self.mu_basis(x_i)
+        y_i = self.mu_basis(y_i)
 
-        w = torch.matmul(x_mask, wg)
-        p = x.size(-1)
-        
-        f = w.reshape(-1, p, self.N, self.N) # add exponential term
-        ef = torch.exp(-f)
-        
-        # mu_t_k = self.mu_basis(x_i)
-        # x = x - torch.mul(mu_t_k, self.coefs)  # [b, N, p]  
         Z = []
         for b in range(x.size(0)):
-            xs = x[b, ].reshape(p, -1, 1)
-            z = torch.matmul(ef[b, ], xs)
-            Z.append(z.sum(0).squeeze())
+            z = 0
+            for i in range(x.size(-1)):
+                xs = x[b, :, i:i+1] - x_i[b, i:i+1]
+                where = x_mask[b, i].item()
+                w = wg[where, ]
+                f = w.reshape(self.N, self.N) # add exponential term
+                # f = w.reshape(N, N)
+                ef = torch.exp(-f)
+                z += torch.matmul(ef, xs)
+            
+            z = z + y_i[b]
+            Z.append(z)
         
-        Z = torch.stack(Z)
-
-        # mu_t = self.mu_basis(y_i).unsqueeze(-1)        
-        # z += torch.mul(mu_t, self.coefs).squeeze(-1)  # [b, N]
-        return Z, w
+        Z = torch.stack(Z).squeeze(-1)
+        return Z, wg
     
     def mu_basis(self, v):
-        return v ** 2
+        return 0.1 * v
 
 
 
@@ -118,12 +123,12 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     # Generate data 
     # input :  [T - 1, N, 1]
-    input, target, input_mask, k = generate_data(X, p)
+    input, target, input_mask, input_indices, target_indices, k = generate_data(X, p)
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
     model = Model(N, g, k)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -138,15 +143,12 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             y = target[idx, ]
             x = input[idx, ]
             x_mask = input_mask[idx, ]
-            # x_i, y_i = input_indices[idx, ], target_indices[idx, ]
+    
+            x_i, y_i = input_indices[idx, ], target_indices[idx, ]
 
-            # x_i = torch.repeat_interleave(x_i.unsqueeze(1), N, 1)
-            # y_i = torch.repeat_interleave(y_i.unsqueeze(1), N, 1)
-
-            pred, _ = model(x, x_mask)
+            pred, _ = model(x, x_mask, x_i, y_i)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
-            # print(loss)
             loss.backward()
             
             optimizer.step()
@@ -163,30 +165,30 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
     
-    #  Intialize model
     N, _ = X.shape 
+
+    input, target, input_mask, input_indices, target_indices, k = generate_data(X, p)
     
-    model = Model(N, g)
+    model = Model(N, g, k)
     load_model(model, None, model_path, device)
     model.eval()
 
-    Xts = torch.from_numpy(X).float()
-    input, input_indices, target, target_indices = generate_data(Xts, p)
     loss_fn = nn.MSELoss()
     
     print('Predicting ...')
-    pred, F = model(input)
+    pred, W = model(input, input_mask)
     pred = pred.squeeze(-1)
     loss = loss_fn(pred, target)
  
     pred = torch.t(pred)
-    out = torch.cat((Xts[:, :1], pred), dim=-1)
+    out = torch.cat((X[:, :p], pred), dim=-1)
 
     out = out.detach().numpy()
 
     print(loss)
     if forecast_path:
-        write_pickle([X, out, F], forecast_path)
+        X = X.detach().numpy()
+        write_pickle([X, out, W], forecast_path)
     
     
 def scale(X, max_, min_):
@@ -204,8 +206,8 @@ if __name__ == "__main__":
 
 
     train_size = 3000
-    batch_size = 100
-    epochs = 1000
+    batch_size = 1000
+    epochs = 5000
     lr = 0.01
     
     p = 1
@@ -214,8 +216,8 @@ if __name__ == "__main__":
     data = np.load(data_path)
     _, d, _ = load_pickle(sample_path)
 
-    data_std = scale(data, 1, 0)
-    # data_std = data
+    # data_std = scale(data, 0.3, 0)
+    data_std = data
  
 
     # d_norm = scale(d.reshape(1,-1), 1, 0).reshape(-1)
@@ -230,7 +232,7 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(X, d_norm, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast(data, d_norm, p, model_path, forecast_path, shape, k)
+        forecast(X, d_norm, p, model_path, forecast_path, shape)
 
 
 
