@@ -94,7 +94,7 @@ class Model(nn.Module):
             z = 0
             for i in range(x.size(-1)):
                 xs = x[b, :, i:i+1] - x_i[b, i:i+1]
-                ef = (x_mask[b, i, ] @ (self.alphas ** 2)) * f
+                ef = (x_mask[b, i, ] @ (self.alphas.abs())) * f
                 z += torch.matmul(ef, xs)
             
             z = z + y_i[b]
@@ -186,7 +186,7 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     W = W.detach().numpy()
 
     print(loss)
-    print(model.alphas ** 2)
+    print(model.alphas)
     if forecast_path:
         X = X.detach().numpy()
         write_pickle([X, out, W], forecast_path)
@@ -201,15 +201,15 @@ if __name__ == "__main__":
 
 
     sample_path = 'data/sample.pickle'
-    data_path = 'data/nst_sim.npy'
-    model_path = 'model/nst_sim.pt'
-    forecast_path = 'output/nst_sim.pickle'
+    data_path = 'data/nst_sim_clean.npy'
+    model_path = 'model/nst_sim_clean.pt'
+    forecast_path = 'output/nst_sim_clean.pickle'
 
 
     train_size = 3000
     batch_size = 100
-    epochs = 10000
-    lr = 1e-5
+    epochs = 50
+    lr = 1e-4
     
     p = 1
 
