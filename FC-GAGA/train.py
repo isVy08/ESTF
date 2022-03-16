@@ -18,21 +18,24 @@ def insert_dict(d, k, v):
     return d
 
   
-print("*********************************")
-print("Default FC-GAGA parameters:")
-print(hyperparams_dict)
-print("*********************************")
+
 
 hyperparams_dict["dataset"] = 'stvar'
-hyperparams_dict["horizon"] = 5
-hyperparams_dict["history_length"] = 5
+
 
 if dataname == 'mine':
     hyperparams_dict["steps_per_epoch"] = 200
+    hyperparams_dict["horizon"] = 5
+    hyperparams_dict["history_length"] = 5
 elif dataname == 'sim':
-    hyperparams_dict["steps_per_epoch"] = 100
+    hyperparams_dict["steps_per_epoch"] = 50
+    hyperparams_dict["horizon"] = 1
+    hyperparams_dict["history_length"] = 1
+
 
 print("*********************************")
+print("FC-GAGA parameters:")
+print(hyperparams_dict)
 print("LOADING DATA")
 print("*********************************")
 

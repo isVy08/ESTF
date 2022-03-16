@@ -1,2 +1,2 @@
-# name (horizon) batch-size epoch
-python train.py data/$1/ 5 $2 $3
+# name horizon (sim=1) batch-size epoch
+python train.py data/$1/ $2 $3 $4

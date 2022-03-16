@@ -72,8 +72,8 @@ class Model(nn.Module):
 
         # Defining some parameters        
         self.weights = nn.Parameter(nn.init.xavier_uniform_(torch.empty(N * N, 1))) # [k, N, 1]
-        self.alphas = nn.Parameter(nn.init.xavier_uniform_(torch.empty(k, 1)))
-        # self.alphas = torch.tensor([[0.001],[0.002], [0.004]])
+        # self.alphas = nn.Parameter(nn.init.xavier_uniform_(torch.empty(k, 1)))
+        self.alphas = torch.tensor([[0.001],[0.002], [0.004]])
 
     def forward(self, x, x_mask, x_i, y_i):
         """
@@ -211,7 +211,7 @@ if __name__ == "__main__":
 
     sample_path = 'data/sample.pickle'
     data_path = 'data/nst_sim_clean.npy'
-    model_path = 'model/nst_sim_clean.pt'
+    model_path = 'model/nst_sim_clean2.pt'
     forecast_path = 'output/nst_sim_clean.pickle'
 
 

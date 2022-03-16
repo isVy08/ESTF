@@ -62,12 +62,20 @@ def generate_train_val_test(args):
     # traffic_df_filename = 'data/STVAR/stvar.h5'
     df = pd.read_hdf(args.traffic_df_filename)
     # 0 is the latest observed sample.
+
+    if 'mine' in args.output_dir:
+        num_train = 3000
+        horizon = 5
+    elif 'sim' in args.output_dir:
+        num_train = 300
+        horizon = 1
+    
     x_offsets = np.sort(
         # np.concatenate(([-week_size + 1, -day_size + 1], np.arange(-11, 1, 1)))
-        np.concatenate((np.arange(-4, 1, 1),)) ######### previous 5 steps => next 5 steps #########
+        np.concatenate((np.arange(1-horizon, 1, 1),)) ######### previous 5 steps => next 5 steps #########
     )
     # Predict the next one hour
-    y_offsets = np.sort(np.arange(1, 6, 1))
+    y_offsets = np.sort(np.arange(1, 1+horizon, 1))
     # x: (num_samples, input_length, num_nodes, input_dim)
     # y: (num_samples, output_length, num_nodes, output_dim)
     x, y = generate_graph_seq2seq_io_data(
@@ -93,10 +101,7 @@ def generate_train_val_test(args):
     # for the rest: 7/8 is used for training, and 1/8 is used for validation.
     num_samples = x.shape[0]
     num_test = round(num_samples * 0.2)
-    if 'mine' in args.output_dir:
-        num_train = 3000
-    elif 'sim' in args.output_dir:
-        num_train = 300
+
     num_val = num_samples - num_test - num_train
 
     # train

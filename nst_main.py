@@ -51,7 +51,8 @@ def generate_data(X, p):
 
     for i in range(p, T):        
         target.append(X[:, i])
-        mask = torch.div(torch.arange(i-p, i), 1000, rounding_mode='trunc')
+        mask = np.arange(i-p, i) // 1000
+        mask = torch.from_numpy(mask)
         input_mask.append(mask)
         input.append(X[:, i-p:i])
         input_indices.append(torch.arange(i-p, i))

@@ -1,35 +1,37 @@
-mode='train', time_slot=5, num_his=5, num_pred=5, L=1, K=8, d=8, train_size=300, val_ratio=0.1, test_ratio=0.2, batch_size=60, max_epoch=10, patience=10, learning_rate=0.001, decay_epoch=10, traffic_file='data/sim/stvar.h5', SE_file='data/sim/SE.txt', model_file='model/sim.pt', log_file='logs/sim'
+mode='train', time_slot=5, num_his=1, num_pred=1, L=1, K=8, d=8, train_size=300, val_ratio=0.1, test_ratio=0.2, batch_size=60, max_epoch=50, patience=10, learning_rate=0.001, decay_epoch=10, traffic_file='data/sim/stvar.h5', SE_file='data/sim/SE.txt', model_file='model/sim.pt', log_file='logs/sim_train'
 loading data...
-fullX: torch.Size([491, 5, 30])		 fullY: torch.Size([491, 10, 1])
-trainX: torch.Size([300, 5, 30])		 trainY: torch.Size([300, 5, 30])
-valX:   torch.Size([100, 5, 30])		valY:   torch.Size([100, 5, 30])
-testX:   torch.Size([100, 5, 30])		testY:   torch.Size([100, 5, 30])
-trainTE:   torch.Size([300, 10, 1])		valTE:   torch.Size([100, 10, 1])
-testTE:   torch.Size([100, 10, 1])		fullTE:   torch.Size([491, 5, 30])
+fullX: torch.Size([499, 1, 30])		 fullY: torch.Size([499, 2, 1])
+trainX: torch.Size([300, 1, 30])		 trainY: torch.Size([300, 1, 30])
+valX:   torch.Size([100, 1, 30])		valY:   torch.Size([100, 1, 30])
+testX:   torch.Size([100, 1, 30])		testY:   torch.Size([100, 1, 30])
+trainTE:   torch.Size([300, 2, 1])		valTE:   torch.Size([100, 2, 1])
+testTE:   torch.Size([100, 2, 1])		fullTE:   torch.Size([499, 1, 30])
 data loaded!
 compiling model...
 trainable parameters: 209,923
 **** training model ****
-2022-03-11 23:45:36 | epoch: 0001/10, training time: 8.3s, inference time: 0.8s
-train loss: 0.9789, val_loss: 0.0208
-val loss decrease from inf to 0.0208, saving model to model/sim.pt
-2022-03-11 23:45:44 | epoch: 0002/10, training time: 6.9s, inference time: 0.8s
-train loss: 0.9125, val_loss: 0.0189
-val loss decrease from 0.0208 to 0.0189, saving model to model/sim.pt
-2022-03-11 23:45:53 | epoch: 0003/10, training time: 7.7s, inference time: 1.1s
-train loss: 0.8887, val_loss: 0.0280
-2022-03-11 23:46:02 | epoch: 0004/10, training time: 8.4s, inference time: 1.1s
-train loss: 0.8698, val_loss: 0.0299
-2022-03-11 23:46:13 | epoch: 0005/10, training time: 9.6s, inference time: 1.0s
-train loss: 0.8542, val_loss: 0.0447
-2022-03-11 23:46:22 | epoch: 0006/10, training time: 8.5s, inference time: 1.0s
-train loss: 0.8375, val_loss: 0.0624
-2022-03-11 23:46:31 | epoch: 0007/10, training time: 8.1s, inference time: 0.9s
-train loss: 0.8211, val_loss: 0.0751
-2022-03-11 23:46:40 | epoch: 0008/10, training time: 7.7s, inference time: 0.8s
-train loss: 0.8044, val_loss: 0.0846
-2022-03-11 23:46:49 | epoch: 0009/10, training time: 8.1s, inference time: 0.9s
-train loss: 0.7886, val_loss: 0.1095
-2022-03-11 23:46:58 | epoch: 0010/10, training time: 7.9s, inference time: 1.0s
-train loss: 0.7751, val_loss: 0.1513
+2022-03-16 18:37:26 | epoch: 0001/50, training time: 1.9s, inference time: 0.2s
+train loss: 0.9489, val_loss: 0.0385
+val loss decrease from inf to 0.0385, saving model to model/sim.pt
+2022-03-16 18:37:28 | epoch: 0002/50, training time: 1.7s, inference time: 0.2s
+train loss: 0.8741, val_loss: 0.0416
+2022-03-16 18:37:30 | epoch: 0003/50, training time: 1.6s, inference time: 0.2s
+train loss: 0.8539, val_loss: 0.0515
+2022-03-16 18:37:32 | epoch: 0004/50, training time: 1.7s, inference time: 0.2s
+train loss: 0.8387, val_loss: 0.0651
+2022-03-16 18:37:34 | epoch: 0005/50, training time: 1.7s, inference time: 0.2s
+train loss: 0.8259, val_loss: 0.0759
+2022-03-16 18:37:36 | epoch: 0006/50, training time: 1.6s, inference time: 0.2s
+train loss: 0.8124, val_loss: 0.0818
+2022-03-16 18:37:38 | epoch: 0007/50, training time: 1.6s, inference time: 0.2s
+train loss: 0.8016, val_loss: 0.0840
+2022-03-16 18:37:39 | epoch: 0008/50, training time: 1.6s, inference time: 0.2s
+train loss: 0.7870, val_loss: 0.0896
+2022-03-16 18:37:41 | epoch: 0009/50, training time: 1.7s, inference time: 0.2s
+train loss: 0.7754, val_loss: 0.0974
+2022-03-16 18:37:43 | epoch: 0010/50, training time: 1.5s, inference time: 0.1s
+train loss: 0.7643, val_loss: 0.1116
+2022-03-16 18:37:44 | epoch: 0011/50, training time: 1.4s, inference time: 0.2s
+train loss: 0.7539, val_loss: 0.1360
+early stop at epoch: 0011
 Training is completed, and model has been stored as model/sim.pt
