@@ -49,9 +49,9 @@ def main():
 
     # Train the network
     if 'mine' in dir:
-        model_path = './model/ConvLSTM_mine.h5'
+        model_path = './model/mine.h5'
     elif 'sim' in dir:
-        model_path = './model/ConvLSTM_sim.h5'
+        model_path = './model/sim.h5'
 
 
     checkpoint = ModelCheckpoint(model_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
@@ -60,7 +60,7 @@ def main():
                 callbacks = [checkpoint])
     predictions = seq.predict(x['full'], verbose=1, batch_size=batch_size)
     np.savez_compressed(
-    os.path.join(dir + 'full_predictions.npz'),
+    os.path.join(sys.argv[5]),
     input=x["full"].squeeze(-1),
     truth=y["full"].squeeze(-1),
     prediction=predictions.squeeze(-1)
