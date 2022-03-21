@@ -16,7 +16,7 @@ if '1' in sys.argv[1]:
     # Write .h5 file
     for i in range(100):
         print(f'Writing .h5 file at {i}...')
-        df = pd.read_csv(data_dir + f'csv/s{i}')
+        df = pd.read_csv(data_dir + f'csv/s{i}.csv')
         df = df.iloc[:, 1:].transpose()
         T = df.shape[0]
         df.columns = ids
