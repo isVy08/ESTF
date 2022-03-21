@@ -37,6 +37,7 @@ def generate_adj_mx(output_file):
 
 if __name__ == "__main__":
     import sys
+    print("Start generating graphs")
     is_directed = False
     p = 2
     q = 1

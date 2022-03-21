@@ -13,8 +13,8 @@ from train import train
 from test import test
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--mode', type=str, default='train',
-                    help='whether to train or evaluate')
+# parser.add_argument('--mode', type=str, default='train',
+#                     help='whether to train or evaluate')
 parser.add_argument('--time_slot', type=int, default=5,
                     help='a time step is 5 mins')
 parser.add_argument('--num_his', type=int, default=20,
@@ -51,6 +51,8 @@ parser.add_argument('--model_file', default='./model/GMAN.pt',
                     help='save the model to disk')
 parser.add_argument('--log_file', default='./data/log',
                     help='log file')
+parser.add_argument('--output_file', default='./data',
+                    help='output file')
 args = parser.parse_args()
 log = open(args.log_file, 'w')
 log_string(log, str(args)[10: -1])
@@ -80,10 +82,7 @@ parameters = count_parameters(model)
 log_string(log, 'trainable parameters: {:,}'.format(parameters))
 
 if __name__ == '__main__':
-    if args.mode == 'train':
-        loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler) 
-        print(loss_train, loss_val)
-    elif args.mode == 'val':
-        test(args, log)
-    else:
-        print('Train or Val ?')
+    
+    loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler) 
+    print(loss_train, loss_val)    
+    test(args, log)
