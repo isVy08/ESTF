@@ -160,12 +160,12 @@ if __name__ == "__main__":
 
     sample_path = 'data/sample.pickle'
     data_path = 'data/sim.npy'
-    model_path = 'model/sim_ep500.pt'
-    forecast_path = 'output/sim_ep500.pickle'
+    model_path = 'model/sim.pt'
+    forecast_path = 'output/sim.pickle'
 
     train_size = 300
     batch_size = 50
-    epochs = 500
+    epochs = 50
     lr = 1.0
     
     p = 1
