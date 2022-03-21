@@ -87,7 +87,7 @@ def generate_train_val_test(args):
 
     print('Writing full data ...')
     np.savez_compressed(
-    os.path.join(args.output_dir, "full-history-%d-horizon-%d.npz" % (args.history_length, args.horizon)),
+    os.path.join(args.output_dir, "full.npz"),
     x=x,
     y=y,
     x_offsets=x_offsets.reshape(list(x_offsets.shape) + [1]),
@@ -120,7 +120,7 @@ def generate_train_val_test(args):
         _x, _y = locals()["x_" + cat], locals()["y_" + cat]
         print(cat, "x: ", _x.shape, "y:", _y.shape)
         np.savez_compressed(
-            os.path.join(args.output_dir, "%s-history-%d-horizon-%d.npz" % (cat, args.history_length, args.horizon)),
+            os.path.join(args.output_dir, "%s.npz" % (cat)),
             x=_x,
             y=_y,
             x_offsets=x_offsets.reshape(list(x_offsets.shape) + [1]),

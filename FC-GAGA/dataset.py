@@ -24,11 +24,11 @@ class Dataset(object):
             gdd.download_file_from_google_drive(file_id='1pAGRfzMx6K9WWsfDcD1NMbIif0T0saFC', dest_path=f"{path}/metr-la.h5", unzip=False)
         elif self.name == 'pems-bay':
             gdd.download_file_from_google_drive(file_id='1wD-mHlqAb2mtHOe_68fZvDh1LpDegMMq', dest_path=f"{path}/pems-bay.h5", unzip=False)
-        elif self.name == 'stvar':
+        elif self.name in ('stvar', 'mine', 'sim'):
             pass
         else:
             raise Exception(f"unknown dataset: {self.name}")
-        pathlib.Path(f"{path}/{self.name}").mkdir(parents=True, exist_ok=True)
+        # pathlib.Path(f"{path}/{self.name}").mkdir(parents=True, exist_ok=True)
 
         dataset_parameters = {"history_length": self.history_length, 
                               "horizon": self.horizon, 
@@ -37,7 +37,7 @@ class Dataset(object):
 
         self.data = {}
         for category in ['train', 'val', 'test', 'full']:
-            data_filename = os.path.join(dataset_parameters["output_dir"], category + f"-history-{self.history_length}-horizon-{self.horizon}.npz")
+            data_filename = os.path.join(dataset_parameters["output_dir"], category + ".npz")
             if not os.path.isfile(data_filename):
                 generate_train_val_test(DatasetParameters(**dataset_parameters))
             cat_data = np.load(data_filename)

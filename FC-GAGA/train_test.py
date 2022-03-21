@@ -9,7 +9,7 @@ from model import hyperparams_defaults as hyperparams_dict
 
 dataname = sys.argv[2]
 LOGDIR = f"./logs/{dataname}_train"
-DATADIR = f"./data/{dataname}"
+DATADIR = f"./data"
 
 
 def insert_dict(d, k, v):
@@ -20,17 +20,19 @@ def insert_dict(d, k, v):
   
 
 
-hyperparams_dict["dataset"] = 'stvar'
 
+hyperparams_dict["dataset"] = dataname
 
 if dataname == 'mine':
     hyperparams_dict["steps_per_epoch"] = 200
     hyperparams_dict["horizon"] = 5
     hyperparams_dict["history_length"] = 5
 elif dataname == 'sim':
-    hyperparams_dict["steps_per_epoch"] = 50
+    hyperparams_dict["steps_per_epoch"] = 5
     hyperparams_dict["horizon"] = 1
     hyperparams_dict["history_length"] = 1
+    hyperparams_dict["init_learning_rate"] = 1e-2
+    
 
 
 print("*********************************")
@@ -120,7 +122,7 @@ elif sys.argv[1] == 'val':
                                         "node_id": metrics.full_data["node_id"],
                                         "time_of_day": metrics.full_data["x"][...,0]})
     np.savez_compressed(
-        os.path.join(DATADIR + '/full_predictions.npz'),
+        os.path.join(sys.argv[4]),
         input=metrics.full_data["x"],
         truth=metrics.full_data["y"],
         prediction=predictions['targets']

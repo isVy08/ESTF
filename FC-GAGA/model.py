@@ -10,9 +10,9 @@ from keras.callbacks import ModelCheckpoint
 
 hyperparams_defaults = {
     "dataset": "stvar", 
-    "repeat": list(range(3)),
+    "repeat": list(range(1)),
     "epochs": [10], 
-    "steps_per_epoch": [150],  # 800 METR-LA, 800 PEMS-BAY
+    "steps_per_epoch": [50],  # 800 METR-LA, 800 PEMS-BAY
     "block_layers": 3,
     "hidden_units": 128,
     "blocks": 2,

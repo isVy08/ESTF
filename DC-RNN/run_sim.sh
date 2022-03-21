@@ -1,3 +1,5 @@
+python -m scripts.gen_adj_mx  --sensor_ids_filename=../data/st_sim/graph_location_ids.txt --distances_filename=../data/st_sim/distances.csv --normalized_k=0.1 --output_pkl_filename=data/sim/adj_mx.pkl 
+
 for i in {0..99}
 do
     python -m scripts.generate_training_data --output_dir=data/sim/ --traffic_df_filename=../data/st_sim/h5/s$i.h5
