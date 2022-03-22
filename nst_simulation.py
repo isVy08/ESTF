@@ -40,72 +40,67 @@ def basis_function(d, shape):
 
     return np.stack(g, axis=1)
 
-def generate_data(X, p):
+def generate_data(X, p, alpha_bound):
     T = X.size(1)
     input, target = [], []
-    input_mask = []
     input_indices = []
-
-    k = T // 1000
-    target_indices = torch.arange(p, T)
+    alphas = [alpha_bound[0]] + [(1 - (t-1)/T) * alpha_bound[0] + (t-1)/T * alpha_bound[1] for t in range(2, T+1)]
+    target_indices = torch.arange(p+1, T+1)
 
     for i in range(p, T):        
         target.append(X[:, i])
-        mask = np.arange(i-p, i) // 1000
-        mask = torch.from_numpy(mask)
-        input_mask.append(mask)
         input.append(X[:, i-p:i])
-        input_indices.append(torch.arange(i-p, i))
+        input_indices.append(torch.arange(i-p+1, i+1))
     
-    return torch.stack(input), torch.stack(target), torch.stack(input_mask), torch.stack(input_indices), target_indices, k
+    return torch.stack(input), torch.stack(target), torch.stack(input_indices), target_indices, torch.Tensor(alphas)
+
+
 
 
 class Model(nn.Module):
-    def __init__(self, N, g, k):
-        """
-        k : number of shape functions
-        """
+    def __init__(self, N, T, g, alphas):
+        
         super(Model, self).__init__()
 
         self.g = g
         self.N = N
-        self.k = k
+        self.alphas = alphas.unsqueeze(-1)
 
         # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.xavier_uniform_(torch.empty(N * N, 1))) # [k, N, 1]
-        self.alphas = nn.Parameter(nn.init.xavier_uniform_(torch.empty(k, 1)))
-        # self.alphas = torch.tensor([[0.001],[0.002], [0.004]])
+        self.weights = nn.Parameter(nn.init.xavier_uniform_(torch.empty(T, N * N)))
+        self.mus = nn.Parameter(nn.init.xavier_uniform_(torch.empty(T, N)))
+        
 
-    def forward(self, x, x_mask, x_i, y_i):
+    def forward(self, x, x_i, y_i):
         """
         x : [b, N, p]
-        x_mask : [b, p, k] (one-hot)
+        x_i : [b, p]
+        y_i : [b]
         """
         self.g.requires_grad = False
-        wg = torch.matmul(self.g, self.weights ** 2) 
-        # wg = torch.matmul(g, weights ** 2)
-        x_i = self.mu_basis(x_i)
-        y_i = self.mu_basis(y_i)
+        # y_i_rep = torch.repeat_interleave(y_i.unsqueeze(-1), N, dim=-1)
+        mu_y = mus[y_i, :]
 
-        f = torch.exp(-wg).reshape(self.N, self.N)
-        # f = torch.exp(-wg).reshape(N, N)
-
-        Z = []
-        for b in range(x.size(0)):
-            z = 0
-            for i in range(x.size(-1)):
-                xs = x[b, :, i:i+1] - x_i[b, i:i+1]
-                ef = (x_mask[b, i, ] @ (self.alphas ** 2)) * f
-                z += torch.matmul(ef, xs)
-            
-            z = z + y_i[b]
-            Z.append(z)
+        # Shape function
+        W = torch.matmul(self.weights ** 2, g) # [T, N ** 2]
+        W = torch.mul(W, self.alphas)
+        wg = W.reshape(-1, self.N, self.N) #[T, N, N]
+        f = torch.softmax(-wg, -1) # [T, N, N]
         
-        Z = torch.stack(Z).squeeze(-1)
-        return Z, wg
-    
-    def mu_basis(self, v):
-        return 0.1 * v
+        Z = 0
+        for p in range(x.size(-1)):
+            steps = x_i[:, p] - 1
+            
+            # coefs_ = coefs[steps, ] # [b, N]
+            # x_i_rep = torch.repeat_interleave(x_i[:,p].unsqueeze(1), N, dim=1) # [b, N]
+            mu_x = mus[steps, ]
+            f_ = f[steps, :]
+
+            a = (x[:, :, p] - mu_x).unsqueeze(-1)
+            z = torch.matmul(f_, a)
+            z.squeeze(-1) + mu_y
+        
+        return Z, W
 
 
 
@@ -114,21 +109,22 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
     
     g = basis_function(d, shape)
-    g = torch.from_numpy(g).float()
-    F = np.log(d+1)
-    F = torch.from_numpy(F)
+    g = torch.from_numpy(g).float() # [N ** 2, N ** 2]
+
+    # F = np.log(d+1)
+    # F = torch.from_numpy(F)
     
     
     N, T = X.shape   
 
     # Generate data 
-    # input :  [T - 1, N, 1]
-    input, target, input_mask, input_indices, target_indices, k = generate_data(X, p)
-    loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=True)
+    # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T], alphas: [T]
+    input, target, input_indices, target_indices, alphas = generate_data(X, p, [0.01, 3])
+    loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
     model = Model(N, g, k)
-    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -144,29 +140,26 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         for idx in tqdm(loader): 
             y = target[idx, ]
             x = input[idx, ]
-            x_mask = input_mask[idx, ]
-            x_mask = torch.eye(k)[x_mask]
-    
             x_i, y_i = input_indices[idx, ], target_indices[idx, ]
 
-            pred, W = model(x, x_mask, x_i, y_i)
-            W = W.squeeze(-1)
+            pred, _ = model(x, x_mask, x_i, y_i)
+            # W = W.squeeze(-1)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
             loss.backward()
             
             optimizer.step()
             train_losses += loss.item()
-            val_losses += loss_fn(W, F).item()
+            # val_losses += loss_fn(W, F).item()
 
         train_loss = train_losses / len(loader)
         val_loss = val_losses / len(loader)
         msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
         print(msg)
-        if val_loss < prev_loss:
+        if train_loss < prev_loss:
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
-            prev_loss = val_loss
+            prev_loss = train_loss
 
 def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
@@ -211,39 +204,34 @@ if __name__ == "__main__":
 
 
     sample_path = 'data/sample.pickle'
-    data_path = 'data/nst_sim.npy'
+    data_path = 'data/nst_sim_data.csv'
     model_path = 'model/nst_sim.pt'
     forecast_path = 'output/nst_sim.pickle'
+
+
+    df = pd.read_csv(data_path)
+    X = df.iloc[:, 1:].to_numpy()
+    X = torch.from_numpy(X).float()
+     _, d, _ = load_pickle(sample_path)
 
 
     train_size = 3000
     batch_size = 100
     epochs = 100
-    lr = 1e-4
+    lr = 1e-2
     
     p = 1
-
-
-    data = np.load(data_path)
-    _, d, _ = load_pickle(sample_path)
-
-    # data_std = scale(data, 1, 0)
-    data_std = data
- 
-
-    # d_norm = scale(d.reshape(1,-1), 1, 0).reshape(-1)
-    d_norm = d
     
         
-    X = data_std[:, :train_size]
-    X = torch.from_numpy(X).float()
+    X_train = X[:, :train_size]
+    
 
     shape = 'monotone_inc'
 
     if sys.argv[1] == 'train':
-        train(X, d_norm, p, model_path, batch_size, epochs, lr, shape, device='cpu')
+        train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast(X, d_norm, p, model_path, forecast_path, shape)
+        forecast(X, d, p, model_path, forecast_path, shape)
 
 
 
