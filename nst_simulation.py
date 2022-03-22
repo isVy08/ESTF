@@ -64,10 +64,10 @@ class Model(nn.Module):
 
         self.g = g
         self.N = N
-        self.alphas = alphas.unsqueeze(-1)
+        self.alphas = alphas
 
         # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.xavier_uniform_(torch.empty(T, N * N)))
+        self.weights = nn.Parameter(nn.init.xavier_uniform_(torch.empty(N * N, 1)))
         self.mus = nn.Parameter(nn.init.xavier_uniform_(torch.empty(T, N)))
         
 
@@ -79,12 +79,12 @@ class Model(nn.Module):
         """
         self.g.requires_grad = False
         # y_i_rep = torch.repeat_interleave(y_i.unsqueeze(-1), N, dim=-1)
-        mu_y = mus[y_i, :]
+        mu_y = self.mus[y_i-1, :]
 
         # Shape function
-        W = torch.matmul(self.weights ** 2, g) # [T, N ** 2]
-        W = torch.mul(W, self.alphas)
-        wg = W.reshape(-1, self.N, self.N) #[T, N, N]
+        W = torch.matmul(self.g, self.weights ** 2) # [N ** 2, 1]
+        wg = torch.mul(W, self.alphas).t() # [T, N]
+        wg = wg.reshape(-1, self.N, self.N) #[T, N, N]
         f = torch.softmax(-wg, -1) # [T, N, N]
         
         Z = 0
@@ -93,18 +93,18 @@ class Model(nn.Module):
             
             # coefs_ = coefs[steps, ] # [b, N]
             # x_i_rep = torch.repeat_interleave(x_i[:,p].unsqueeze(1), N, dim=1) # [b, N]
-            mu_x = mus[steps, ]
+            mu_x = self.mus[steps, ]
             f_ = f[steps, :]
 
             a = (x[:, :, p] - mu_x).unsqueeze(-1)
             z = torch.matmul(f_, a)
-            z.squeeze(-1) + mu_y
+            Z += z.squeeze(-1) + mu_y
         
         return Z, W
 
 
 
-def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
+def train(X, d, p, alpha_bound, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
     
@@ -119,11 +119,11 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     # Generate data 
     # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T], alphas: [T]
-    input, target, input_indices, target_indices, alphas = generate_data(X, p, [0.01, 3])
+    input, target, input_indices, target_indices, alphas = generate_data(X, p, alpha_bound)
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
-    model = Model(N, g, k)
+    model = Model(N, T, g, alphas)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -132,7 +132,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         model.to(device)
 
     loss_fn = nn.MSELoss()
-    prev_loss = 1.0
+    prev_loss = 10**2
 
     for epoch in range(1, epochs + 1):
         train_losses = 0
@@ -142,7 +142,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             x = input[idx, ]
             x_i, y_i = input_indices[idx, ], target_indices[idx, ]
 
-            pred, _ = model(x, x_mask, x_i, y_i)
+            pred, _ = model(x, x_i, y_i)
             # W = W.squeeze(-1)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
@@ -161,25 +161,25 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             prev_loss = train_loss
 
-def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
+def forecast(X, d, p, alpha_bound, model_path, forecast_path, shape, device='cpu'):
 
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
     
-    N, _ = X.shape 
+    N, T = X.shape 
 
-    input, target, input_mask, input_indices, target_indices, k = generate_data(X, p)
+    input, target, input_indices, target_indices, alphas = generate_data(X, p, alpha_bound)
     
-    model = Model(N, g, k)
+    model = Model(N, T, g, alphas)
     load_model(model, None, model_path, device)
     model.eval()
 
     loss_fn = nn.MSELoss()
     
     print('Predicting ...')
-    input_mask = torch.eye(k)[input_mask]
-    pred, W = model(input, input_mask, input_indices, target_indices)
-    pred = pred.squeeze(-1)
+    
+    pred, W = model(input, input_indices, target_indices)
+    pred = pred
     loss = loss_fn(pred, target)
  
     pred = torch.t(pred)
@@ -187,12 +187,13 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
     out = out.detach().numpy()
     W = W.detach().numpy()
+    alphas = alphas.detach().numpy()
+    mus = model.mus.detach().numpy()
 
     print(loss)
-    print(model.alphas ** 2)
     if forecast_path:
         X = X.detach().numpy()
-        write_pickle([X, out, W], forecast_path)
+        write_pickle([X, out, W, alphas, mus], forecast_path)
     
     
 def scale(X, max_, min_):
@@ -211,27 +212,31 @@ if __name__ == "__main__":
 
     df = pd.read_csv(data_path)
     X = df.iloc[:, 1:].to_numpy()
+
+    # X = scale(X, 0, 10)
+
     X = torch.from_numpy(X).float()
-     _, d, _ = load_pickle(sample_path)
+    _, d, _ = load_pickle(sample_path)
 
 
     train_size = 3000
-    batch_size = 100
-    epochs = 100
-    lr = 1e-2
-    
+    batch_size = 1000
+    epochs = 1000
+    lr = 0.5
     p = 1
-    
-        
+
+    alpha_bound = [0.01, 3]
+    shape = 'monotone_inc'
+
     X_train = X[:, :train_size]
     
 
-    shape = 'monotone_inc'
+    
 
     if sys.argv[1] == 'train':
-        train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
+        train(X_train, d, p, alpha_bound, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast(X, d, p, model_path, forecast_path, shape)
+        forecast(X_train, d, p, alpha_bound, model_path, forecast_path, shape)
 
 
 
