@@ -72,9 +72,8 @@ class Model(nn.Module):
         self.alphas = generate_alphas(0.01, 3)
 
         # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.xavier_normal_(torch.empty(N * N, 1)))
-        # self.alphas = nn.Parameter(nn.init.xavier_normal_(torch.empty(T,1)))
-        self.mus = nn.Parameter(nn.init.uniform_(torch.empty(T, N), 0, 10))    
+        self.weights = nn.Parameter(nn.init.normal_(torch.empty(N * N, 1)))
+        # self.mus = nn.Parameter(nn.init.uniform_(torch.empty(T, N), 0.0001, 0.001))    
 
     def forward(self, x, x_i, y_i):
         """
@@ -83,9 +82,8 @@ class Model(nn.Module):
         y_i : [b]
         """
         self.g.requires_grad = False
-        # y_i_rep = torch.repeat_interleave(y_i.unsqueeze(-1), N, dim=-1)
+    
         # mus = self.mus.sort(dim=0).values
-        mu_y = self.mus[y_i, :]
 
         # Shape function
         F = torch.matmul(self.g, self.weights ** 2) # [N ** 2, 1]
@@ -97,14 +95,12 @@ class Model(nn.Module):
         Z = 0
         for p in range(x.size(-1)):
             steps = x_i[:, p]
-            
-            # x_i_rep = torch.repeat_interleave(x_i[:,p].unsqueeze(1), N, dim=1) # [b, N]
-            mu_x = self.mus[steps, ]
+        
             f_ = f[steps, :]
 
-            a = (x[:, :, p] - mu_x).unsqueeze(-1)
+            a = (x[:, :, p]).unsqueeze(-1)
             z = torch.matmul(f_, a)
-            Z += z.squeeze(-1) + mu_y
+            Z += z.squeeze(-1)
         
         return Z, F
 
@@ -138,7 +134,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         model.to(device)
 
     loss_fn = nn.MSELoss()
-    prev_loss = 10.0
+    prev_loss = 1e+10
 
     for epoch in range(1, epochs + 1):
         train_losses = 0
@@ -196,8 +192,9 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     out = out.detach().numpy()
     F = F_hat[:, 0].detach().numpy()
 
-    mus = model.mus
-    mus = mus.detach().numpy()
+    # mus = model.mus.sort(dim=0).values
+    # mus = mus.detach().numpy()
+    mus=0
     
     alphas = model.alphas
     alphas = alphas.detach().numpy()
@@ -222,9 +219,6 @@ if __name__ == "__main__":
 
     sample_path = 'data/sample.pickle'
     data_path = 'data/nst_sim_data.csv'
-    model_path = 'model/nst_sim.pt'
-    forecast_path = 'output/nst_sim.pickle'
-
 
     df = pd.read_csv(data_path)
     X = df.iloc[:, 1:].to_numpy()
@@ -233,11 +227,14 @@ if __name__ == "__main__":
     _, d, _ = load_pickle(sample_path)
 
 
-    train_size = 100
+    train_size = int(sys.argv[2])
     batch_size = 100
     epochs = 10000
-    lr = 1.0
+    lr = 0.1
     p = 1
+
+    model_path = f'model/nst_sim_{train_size}.pt'
+    forecast_path = f'output/nst_sim_{train_size}.pickle'
 
     shape = 'monotone_inc'
 
