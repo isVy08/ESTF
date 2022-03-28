@@ -41,15 +41,19 @@ def basis_function(d, shape):
     return np.stack(g, axis=1)
 
 def generate_data(X, p):
+    
+    input, target = [], []
+    input_indices = []
+    
     T = X.size(1)
-    input = []
-    target = []
-    # indices = []
-    for i in range(p, T):
+    target_indices = torch.arange(p, T) 
+
+    for i in range(p, T):        
         target.append(X[:, i])
         input.append(X[:, i-p:i])
-        # indices.append(torch.arange(i-p, i))
-    return torch.stack(input), torch.stack(target)
+        input_indices.append(torch.arange(i-p, i))
+    
+    return torch.stack(input), torch.stack(target), torch.stack(input_indices), target_indices
 
 
 class Model(nn.Module):
@@ -96,7 +100,7 @@ def train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     loss_fn = nn.MSELoss()
 
     # Generate data 
-    input, target = generate_data(DX, p)
+    input, target, _, _ = generate_data(DX, p)
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     for epoch in range(1, epochs + 1):
@@ -119,36 +123,55 @@ def train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
         torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
 
-def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
+
+def long_forecast(input, model, h, T):
+    preds = []
+    t = 0
+    while t < T:
+        x = input[t: t+1]
+        for i in range(t, t + h):
+            x, _ = model(x)
+            preds.append(x)
+            x = x.unsqueeze(-1)
+        t = i + 1
+    return torch.cat(preds)
+
+
+def forecast(X, d, p, model_path, forecast_path, shape, h, device='cpu'):
 
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
     
     #  Intialize model
-    N, _ = X.shape 
-    
+    N, T = X.shape 
+
     model = Model(N, g)
     load_model(model, None, model_path, device)
     model.eval()
 
     Xts = torch.from_numpy(X).float()
-    input, target = generate_data(Xts, p)
+    input, target, input_indices, target_indices = generate_data(Xts, p)
+    
     loss_fn = nn.MSELoss()
     
     print('Predicting ...')
     pred, F = model(input)
-    pred = pred.squeeze(-1)
+    if p == 1:
+        pred = long_forecast(input, model, h, T)
+        pred = pred[:-1, :]
+    
+    
     loss = loss_fn(pred, target)
  
     pred = torch.t(pred)
     out = torch.cat((Xts[:, :p], pred), dim=-1)
 
     out = out.detach().numpy()
-    F = F.detach().numpy()
-
     print(loss)
-    if forecast_path:
-        write_pickle([X, out, F], forecast_path)
+    F = F[:, 0].detach().numpy()
+    
+    write_pickle([X, out, F], forecast_path)
+
     
     
 def scale(X, max_, min_):
@@ -173,25 +196,16 @@ if __name__ == "__main__":
 
     X = np.load(data_path)
     _, d, _ = load_pickle(sample_path)
-
-    # X_std = scale(X, 0.3, 0)
-    X_std = X
-
-    # d_norm = scale(d.reshape(1,-1), 1, 0).reshape(-1)
-    d_norm = d
-    
-        
-    X_train = X_std[:, :train_size]
-    DX = X_train
-    # DX = X_train[:, 1:] - X_train[:, :-1] 
+         
+    X_train = X[:, :train_size]
     DX = torch.from_numpy(DX).float()
 
     shape = 'monotone_inc'
 
     if sys.argv[1] == 'train':
-        train(DX, d_norm, p, model_path, batch_size, epochs, lr, shape, device='cpu')
+        train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast(X_std, d_norm, p, model_path, forecast_path, shape)
+        forecast(X, d, p, model_path, forecast_path, shape)
 
 
 
