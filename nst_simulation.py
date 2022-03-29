@@ -7,39 +7,6 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 
 
-def load_model(model, optimizer, model_path, device):
-    checkpoint = torch.load(model_path, map_location=device)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.to(device)
-    if optimizer:
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
-
-def moving_average_standardize(W, n):
-    T = W.shape[0]
-    std_W = (W[:n, :] - W[:n, :].mean())/W[:n, :].std() 
-    for i in range(n,T):
-        ref = W[i+1-n:i+1, :]
-        w = (W[i:i+1, :] - ref.mean())/ref.std()
-        std_W = torch.cat((std_W,w))
-    return std_W
-
-def basis_function(d, shape):
-    m = d.shape[0]
-    sorted_d = np.sort(d)
-    g = []
-    for i in range(m):
-        if shape == 'monotone_inc':
-            a = (d >= sorted_d[i]).astype('float')
-            b = int(sorted_d[i] <= 0.0) 
-            g.append(a - b)
-        elif shape == 'concave_inc':
-            a = (d <= sorted_d[i]).astype('float')
-            gx = np.multiply(d-sorted_d[i], a) + sorted_d[i] * int(sorted_d[i] >= 0.0) 
-            g.append(gx)
-
-    return np.stack(g, axis=1)
-
 def generate_data(X, p):
     
     input, target = [], []
@@ -72,10 +39,9 @@ class Model(nn.Module):
         self.alphas = generate_alphas(0.01, 3)
 
         # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.normal_(torch.empty(N * N, 1)))
-        # self.mus = nn.Parameter(nn.init.uniform_(torch.empty(T, N), 0.0001, 0.001))    
+        self.weights = nn.Parameter(nn.init.uniform_(torch.empty(N * N, 1)))
 
-    def forward(self, x, x_i, y_i):
+    def forward(self, x, x_i):
         """
         x : [b, N, p]
         x_i : [b, p]
@@ -83,8 +49,6 @@ class Model(nn.Module):
         """
         self.g.requires_grad = False
     
-        # mus = self.mus.sort(dim=0).values
-
         # Shape function
         F = torch.matmul(self.g, self.weights ** 2) # [N ** 2, 1]
         W = torch.matmul(self.alphas, -F.t()) # [T, N ** 2]
@@ -126,7 +90,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     #  Intialize model
     model = Model(N, T, g)
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -142,9 +106,9 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         for idx in tqdm(loader): 
             y = target[idx, ]
             x = input[idx, ]
-            x_i, y_i = input_indices[idx, ], target_indices[idx, ]
+            x_i = input_indices[idx, ]
 
-            pred, F_hat = model(x, x_i, y_i)
+            pred, F_hat = model(x, x_i)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
             loss.backward()
@@ -165,6 +129,20 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             print(f'Early stopping at epoch {epoch}')
             break
 
+def long_forecast(input, input_indices, model, h, T):
+    preds = []
+    t = 0
+    while t < T:
+        x = input[t: t+1]
+        x_i = input_indices[t]
+        for i in range(t, t + h):
+            x, _ = model(x, x_i)
+            preds.append(x)
+            x = x.unsqueeze(-1)
+            x_i = input_indices[i]
+        t = i + 1
+    return torch.cat(preds)
+
 def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
     g = basis_function(d, shape)
@@ -172,7 +150,7 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     
     N, T = X.shape 
 
-    input, target, input_indices, target_indices = generate_data(X, p)
+    input, target, _, _ = generate_data(X, p)
     
     model = Model(N, T, g)
     load_model(model, None, model_path, device)
@@ -182,27 +160,26 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     
     print('Predicting ...')
     
-    pred, F_hat = model(input, input_indices, target_indices)
+    pred, F_hat = model(input, input_indices)
     pred = pred
     loss = loss_fn(pred, target)
- 
-    pred = torch.t(pred)
-    out = torch.cat((X[:, :p], pred), dim=-1)
 
-    out = out.detach().numpy()
-    F = F_hat[:, 0].detach().numpy()
-
-    # mus = model.mus.sort(dim=0).values
-    # mus = mus.detach().numpy()
-    mus=0
+    print('Predicting ...')
+    pred, F = model(input)
+    if p == 1 and h > 1:
+        pred = long_forecast(input, input_indices, model, h, T)
+        pred = pred[:(T-p), ]
     
-    alphas = model.alphas
-    alphas = alphas.detach().numpy()
-
-    print(loss)
+    
+    loss = loss_fn(pred, target)
+    print(loss.item())
+    pred = torch.t(pred)
+    out = torch.cat((Xts[:, :p], pred), dim=-1) 
+    
     if forecast_path:
-        X = X.detach().numpy()
-        write_pickle([X, out, F, mus, alphas], forecast_path)
+        F = F[:, 0].detach().numpy()
+        out = out.detach().numpy()
+        write_pickle([X, out, F], forecast_path)
     
     
 def scale(X, max_, min_):
@@ -228,13 +205,13 @@ if __name__ == "__main__":
 
 
     train_size = int(sys.argv[2])
-    batch_size = 100
+    batch_size = train_size
     epochs = 10000
-    lr = 0.1
+    lr = 0.001
     p = 1
 
-    model_path = f'model/nst_sim_{train_size}.pt'
-    forecast_path = f'output/nst_sim_{train_size}.pickle'
+    model_path = f'model/nst_sim.pt'
+    forecast_path = f'output/nst_sim.pickle'
 
     shape = 'monotone_inc'
 
@@ -244,7 +221,7 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast(X_train, d, p, model_path, forecast_path, shape)
+        forecast(X, d, p, model_path, forecast_path, shape)
 
 
 

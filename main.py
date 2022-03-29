@@ -7,39 +7,6 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 
 
-def load_model(model, optimizer, model_path, device):
-    checkpoint = torch.load(model_path, map_location=device)
-    model.load_state_dict(checkpoint['model_state_dict'])
-    model.to(device)
-    if optimizer:
-        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-
-
-def moving_average_standardize(W, n):
-    T = W.shape[0]
-    std_W = (W[:n, :] - W[:n, :].mean())/W[:n, :].std() 
-    for i in range(n,T):
-        ref = W[i+1-n:i+1, :]
-        w = (W[i:i+1, :] - ref.mean())/ref.std()
-        std_W = torch.cat((std_W,w))
-    return std_W
-
-def basis_function(d, shape):
-    m = d.shape[0]
-    sorted_d = np.sort(d)
-    g = []
-    for i in range(m):
-        if shape == 'monotone_inc':
-            a = (d >= sorted_d[i]).astype('float')
-            b = int(sorted_d[i] <= 0.0) 
-            g.append(a - b)
-        elif shape == 'concave_inc':
-            a = (d <= sorted_d[i]).astype('float')
-            gx = np.multiply(d-sorted_d[i], a) + sorted_d[i] * int(sorted_d[i] >= 0.0) 
-            g.append(gx)
-
-    return np.stack(g, axis=1)
-
 def generate_data(X, p):
     
     input, target = [], []
@@ -150,41 +117,34 @@ def forecast(X, d, p, model_path, forecast_path, shape, h, device='cpu'):
     model.eval()
 
     Xts = torch.from_numpy(X).float()
-    input, target, input_indices, target_indices = generate_data(Xts, p)
+    input, target, _, _ = generate_data(Xts, p)
     
     loss_fn = nn.MSELoss()
     
     print('Predicting ...')
     pred, F = model(input)
-    if p == 1:
+    if p == 1 and h > 1:
         pred = long_forecast(input, model, h, T)
-        pred = pred[:-1, :]
+        pred = pred[:(T-p), ]
     
     
     loss = loss_fn(pred, target)
- 
+    print(loss.item())
     pred = torch.t(pred)
-    out = torch.cat((Xts[:, :p], pred), dim=-1)
+    out = torch.cat((Xts[:, :p], pred), dim=-1) 
+    
+    if forecast_path:
+        F = F[:, 0].detach().numpy()
+        out = out.detach().numpy()
+        write_pickle([X, out, F], forecast_path)
 
-    out = out.detach().numpy()
-    print(loss)
-    F = F[:, 0].detach().numpy()
-    
-    write_pickle([X, out, F], forecast_path)
-
-    
-    
-def scale(X, max_, min_):
-    X_std = (X - X.min(axis=1).reshape(-1,1)) / ((X.max(axis=1) - X.min(axis=1)).reshape(-1,1))
-    X_std = X_std * (max_ - min_) + min_
-    return X_std
 
 if __name__ == "__main__":
 
     sample_path = 'data/sample.pickle'
     data_path = 'data/sim.npy'
     model_path = 'model/sim.pt'
-    forecast_path = 'output/sim.pickle'
+    
 
     train_size = 300
     batch_size = 50
@@ -205,7 +165,11 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(DX, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast(X, d, p, model_path, forecast_path, shape)
+        hs = [1] + list(range(5, 55, 5))
+        for h in hs:
+            print("h = ", h)
+            forecast_path = f'output/sim_h{h}.pickle' if h in (1, 5) else None
+            forecast(X, d, p, model_path, forecast_path, shape, h, device='cpu')
 
 
 
