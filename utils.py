@@ -1,4 +1,6 @@
 import json, pickle
+import numpy as np
+import torch
 
 class Namespace:
   def __init__(self, **kwargs):
@@ -17,6 +19,11 @@ def standardize(ts, dim, means=None, stds=None):
   if stds is None:
     stds = ts.std(dim=dim, keepdim=True)
   return (ts - means) / stds
+
+def load(datadir):
+    with open(datadir, encoding='utf-8') as f:
+        data = f.read().splitlines()
+    return data
 
 def load_pickle(datadir):
   file = open(datadir, 'rb')
@@ -47,6 +54,7 @@ def moving_average_standardize(W, n):
 
 
 def basis_function(d, shape):
+    
     m = d.shape[0]
     sorted_d = np.sort(d)
     g = []

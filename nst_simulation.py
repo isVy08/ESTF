@@ -129,28 +129,37 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             print(f'Early stopping at epoch {epoch}')
             break
 
-def long_forecast(input, input_indices, model, h, T):
-    preds = []
+def long_forecast(input, input_indices, model, h, T, path):
+    file = open(path, 'w+')
     t = 0
+    pbar = tqdm(total = T + 2)
     while t < T:
         x = input[t: t+1]
-        x_i = input_indices[t]
-        for i in range(t, t + h):
+        x_i = input_indices[t: t+1]
+        end = min(t+h, T)
+        for i in range(t, end):
             x, _ = model(x, x_i)
-            preds.append(x)
+            file.write(str(x[0,].tolist())+'\n')
+            # print(i)
             x = x.unsqueeze(-1)
-            x_i = input_indices[i]
+            x_i = input_indices[i: i+1]  
+        pbar.update(t)      
         t = i + 1
-    return torch.cat(preds)
 
-def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
+    file.close()
+    pbar.close()
+    
+
+def forecast(X, d, p, train_size, h,
+            model_path, forecast_path, 
+            shape, device='cpu'):
 
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
     
     N, T = X.shape 
 
-    input, target, _, _ = generate_data(X, p)
+    input, target, input_indices, target_indices = generate_data(X, p)
     
     model = Model(N, T, g)
     load_model(model, None, model_path, device)
@@ -159,37 +168,26 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     loss_fn = nn.MSELoss()
     
     print('Predicting ...')
+    pred, F = model(input, input_indices)
     
-    pred, F_hat = model(input, input_indices)
-    pred = pred
-    loss = loss_fn(pred, target)
-
-    print('Predicting ...')
-    pred, F = model(input)
     if p == 1 and h > 1:
-        pred = long_forecast(input, input_indices, model, h, T)
-        pred = pred[:(T-p), ]
-    
-    
-    loss = loss_fn(pred, target)
-    print(loss.item())
+        path = 'output/temp'
+        long_forecast(input, input_indices, model, h, T, path)
+        pred = [eval(i) for i in load(path)]
+        pred = torch.Tensor(pred)
+
     pred = torch.t(pred)
-    out = torch.cat((Xts[:, :p], pred), dim=-1) 
-    
+    out = torch.cat((X[:, :p], pred), dim=-1) 
+    loss = loss_fn(out[:, train_size:T], X[:, train_size:T])
+    print(loss.item())
+
     if forecast_path:
+        X = X.detach().numpy()
         F = F[:, 0].detach().numpy()
         out = out.detach().numpy()
         write_pickle([X, out, F], forecast_path)
+    return loss.item()
     
-    
-def scale(X, max_, min_):
-    X_std = (X - X.min(axis=1).reshape(-1,1)) / ((X.max(axis=1) - X.min(axis=1)).reshape(-1,1))
-    X_std = X_std * (max_ - min_) + min_
-    return X_std
-
-def normalize(X):
-    X_std = (X - X.mean(1).reshape(-1, 1)) / X.std(1).reshape(-1, 1)
-    return X_std
 
 if __name__ == "__main__":
 
@@ -202,26 +200,34 @@ if __name__ == "__main__":
 
     X = torch.from_numpy(X).float()
     _, d, _ = load_pickle(sample_path)
+    X = X[:, :2000]
 
 
-    train_size = int(sys.argv[2])
-    batch_size = train_size
+    train_size = 1000
+    batch_size = 1000
     epochs = 10000
     lr = 0.001
     p = 1
 
-    model_path = f'model/nst_sim.pt'
-    forecast_path = f'output/nst_sim.pickle'
-
+    model_path = 'model/nst_sim.pt'
     shape = 'monotone_inc'
 
-    X_train = X[:, :train_size]
-    
 
     if sys.argv[1] == 'train':
+        X_train = X[:, :train_size]
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast(X, d, p, model_path, forecast_path, shape)
+        collector = {'h': [], 'loss': []}
+        hs = [1, 10] + list(range(50, 250, 50))
+        for h in hs:
+            print("h = ", h)
+            forecast_path = f'output/nst_sim_h{h}.pickle' if h in hs[:2] else None
+            loss = forecast(X, d, p, train_size, h, model_path, forecast_path, shape, device='cpu')
+            collector['h'].append(h)
+            collector['loss'].append(loss)
+
+        df = pd.DataFrame.from_dict(collector, orient='index')
+        df.to_csv('output/nst_sim.csv')
 
 
 
