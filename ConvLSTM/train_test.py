@@ -48,10 +48,8 @@ def main():
     seq.compile(loss='mean_squared_error', optimizer='adadelta')
 
     # Train the network
-    if 'mine' in dir:
-        model_path = './model/mine.h5'
-    elif 'sim' in dir:
-        model_path = './model/sim.h5'
+    name = dir.split('/')[1]
+    model_path = f'./model/{name}.h5'
 
 
     checkpoint = ModelCheckpoint(model_path, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
