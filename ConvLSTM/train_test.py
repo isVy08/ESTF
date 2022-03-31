@@ -56,6 +56,8 @@ def main():
     seq.fit(x['train'], y['train'], batch_size=batch_size, epochs=epochs, 
                 validation_data=(x['val'], y['val']),
                 callbacks = [checkpoint])
+    # import tensorflow as tf
+    # seq = tf.keras.models.load_model(model_path)
     predictions = seq.predict(x['full'], verbose=1, batch_size=batch_size)
     np.savez_compressed(
     os.path.join(sys.argv[5]),

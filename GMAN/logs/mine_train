@@ -1,4 +1,4 @@
-K=8, L=1, SE_file='data/mine/SE.txt', batch_size=60, d=8, decay_epoch=10, learning_rate=0.001, log_file='logs/mine_train', max_epoch=1000, mode='train', model_file='model/mine.pt', num_his=5, num_pred=5, patience=10, test_ratio=0.2, time_slot=5, traffic_file='data/mine/stvar.h5', train_size=3000, val_ratio=0.1
+time_slot=5, num_his=5, num_pred=5, L=1, K=8, d=8, train_size=3000, val_ratio=0.1, test_ratio=0.2, batch_size=60, max_epoch=100, patience=10, learning_rate=0.01, decay_epoch=10, traffic_file='../data/mine/data.h5', SE_file='data/mine/SE.txt', model_file='model/mine.pt', log_file='logs/mine_train', output_file='data/mine/preds.npz'
 loading data...
 fullX: torch.Size([7311, 5, 30])		 fullY: torch.Size([7311, 10, 1])
 trainX: torch.Size([3000, 5, 30])		 trainY: torch.Size([3000, 5, 30])
@@ -10,34 +10,49 @@ data loaded!
 compiling model...
 trainable parameters: 209,923
 **** training model ****
-2022-03-12 14:26:11 | epoch: 0001/1000, training time: 19.4s, inference time: 4.0s
-train loss: 0.2976, val_loss: 3.4133
-val loss decrease from inf to 3.4133, saving model to model/mine.pt
-2022-03-12 14:26:28 | epoch: 0002/1000, training time: 12.9s, inference time: 3.9s
-train loss: 0.1962, val_loss: 0.1772
-val loss decrease from 3.4133 to 0.1772, saving model to model/mine.pt
-2022-03-12 14:26:45 | epoch: 0003/1000, training time: 12.7s, inference time: 3.9s
-train loss: 0.1491, val_loss: 0.1234
-val loss decrease from 0.1772 to 0.1234, saving model to model/mine.pt
-2022-03-12 14:27:02 | epoch: 0004/1000, training time: 13.0s, inference time: 3.9s
-train loss: 0.1133, val_loss: 0.1539
-2022-03-12 14:27:19 | epoch: 0005/1000, training time: 13.1s, inference time: 3.9s
-train loss: 0.0848, val_loss: 0.1766
-2022-03-12 14:27:36 | epoch: 0006/1000, training time: 12.9s, inference time: 3.9s
-train loss: 0.0635, val_loss: 0.2463
-2022-03-12 14:28:18 | epoch: 0007/1000, training time: 38.6s, inference time: 4.0s
-train loss: 0.0476, val_loss: 0.2078
-2022-03-12 14:28:35 | epoch: 0008/1000, training time: 13.0s, inference time: 3.9s
-train loss: 0.0348, val_loss: 0.1632
-2022-03-12 14:30:46 | epoch: 0009/1000, training time: 107.5s, inference time: 23.1s
-train loss: 0.0254, val_loss: 0.2279
-2022-03-12 14:32:14 | epoch: 0010/1000, training time: 82.6s, inference time: 5.4s
-train loss: 0.0188, val_loss: 0.2449
-2022-03-12 14:32:31 | epoch: 0011/1000, training time: 13.4s, inference time: 4.0s
-train loss: 0.0139, val_loss: 0.2710
-2022-03-12 14:32:49 | epoch: 0012/1000, training time: 13.5s, inference time: 3.9s
-train loss: 0.0103, val_loss: 0.1373
-2022-03-12 14:33:06 | epoch: 0013/1000, training time: 13.2s, inference time: 4.1s
-train loss: 0.0081, val_loss: 0.1380
-early stop at epoch: 0013
+2022-04-01 02:49:29 | epoch: 0001/100, training time: 154.1s, inference time: 51.4s
+train loss: 0.6069, val_loss: 0.0882
+val loss decrease from inf to 0.0882, saving model to model/mine.pt
+2022-04-01 02:52:47 | epoch: 0002/100, training time: 165.0s, inference time: 32.3s
+train loss: 0.0982, val_loss: 0.0276
+val loss decrease from 0.0882 to 0.0276, saving model to model/mine.pt
+2022-04-01 02:54:32 | epoch: 0003/100, training time: 77.7s, inference time: 27.9s
+train loss: 0.0130, val_loss: 0.0102
+val loss decrease from 0.0276 to 0.0102, saving model to model/mine.pt
+2022-04-01 02:56:34 | epoch: 0004/100, training time: 86.8s, inference time: 35.2s
+train loss: 0.0039, val_loss: 0.0069
+val loss decrease from 0.0102 to 0.0069, saving model to model/mine.pt
+2022-04-01 02:58:20 | epoch: 0005/100, training time: 80.3s, inference time: 25.5s
+train loss: 0.0038, val_loss: 0.0081
+2022-04-01 03:00:09 | epoch: 0006/100, training time: 82.9s, inference time: 26.1s
+train loss: 0.0035, val_loss: 0.0095
+2022-04-01 03:01:50 | epoch: 0007/100, training time: 76.0s, inference time: 24.6s
+train loss: 0.0039, val_loss: 0.0116
+2022-04-01 03:03:24 | epoch: 0008/100, training time: 70.9s, inference time: 22.6s
+train loss: 0.0035, val_loss: 0.0078
+2022-04-01 03:04:58 | epoch: 0009/100, training time: 72.6s, inference time: 21.9s
+train loss: 0.0033, val_loss: 0.0094
+2022-04-01 03:06:29 | epoch: 0010/100, training time: 69.2s, inference time: 21.9s
+train loss: 0.0032, val_loss: 0.0106
+2022-04-01 03:07:58 | epoch: 0011/100, training time: 67.5s, inference time: 20.9s
+train loss: 0.0032, val_loss: 0.0123
+2022-04-01 03:09:26 | epoch: 0012/100, training time: 67.2s, inference time: 21.3s
+train loss: 0.0032, val_loss: 0.0168
+2022-04-01 03:10:56 | epoch: 0013/100, training time: 68.9s, inference time: 21.5s
+train loss: 0.0030, val_loss: 0.0100
+2022-04-01 03:12:26 | epoch: 0014/100, training time: 67.8s, inference time: 21.8s
+train loss: 0.0030, val_loss: 0.0115
+early stop at epoch: 0014
 Training is completed, and model has been stored as model/mine.pt
+**** testing model ****
+loading model from model/mine.pt
+model restored!
+evaluating...
+test             0.05		0.09		3.72%
+performance in each prediction step
+step: 01         0.05		0.08		4.57%
+step: 02         0.05		0.09		3.92%
+step: 03         0.05		0.09		3.23%
+step: 04         0.05		0.09		2.99%
+step: 05         0.05		0.09		3.90%
+average:         0.05		0.09		3.72%

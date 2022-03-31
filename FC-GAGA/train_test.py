@@ -24,9 +24,9 @@ def insert_dict(d, k, v):
 hyperparams_dict["dataset"] = dataname
 
 if dataname == 'mine':
-    hyperparams_dict["epochs"] = 1000
+    hyperparams_dict["epochs"] = 10
     hyperparams_dict["steps_per_epoch"] = 10
-    hyperparams_dict["horizon"] = 1
+    hyperparams_dict["horizon"] = 5
     hyperparams_dict["history_length"] = 5
 elif dataname == 'sim':
     hyperparams_dict["epochs"] = 100
