@@ -9,10 +9,11 @@ Module to transform data to be compatible with baselines
 
 # Load location indices
 ids, d, _ = load_pickle('data/sample.pickle')
-data_dir = './data/st_sim/'
+# data_dir = './data/st_sim/'
+data_dir = sys.argv[1]
 N = len(ids)
 
-if '1' in sys.argv[1]:
+if '1' in sys.argv[2]:
     # Write .h5 file
     for i in range(100):
         print(f'Writing .h5 file at {i}...')
@@ -41,7 +42,7 @@ if '1' in sys.argv[1]:
         df.to_hdf(data_dir + f'h5/s{i}.h5', key='df')
 
 
-if '2' in sys.argv[1]:
+if '2' in sys.argv[2]:
     print('Writing file graph_location_ids.txt')
 
     # write location ids
@@ -53,7 +54,7 @@ if '2' in sys.argv[1]:
             file.write(str(ids[l]))
     file.close()
 
-if '3' in sys.argv[1]:
+if '3' in sys.argv[2]:
 
     # write distance df
     print('Writing file distances.csv')
