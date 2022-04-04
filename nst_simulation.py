@@ -115,7 +115,8 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             val_losses += loss_fn(F_hat[:, 0], F).item()
 
         train_loss = train_losses / len(loader)
-        val_loss = val_losses / len(loader)
+        # val_loss = val_losses / len(loader)
+        val_loss = train_losses 
         msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
         print(msg)
         if val_loss < prev_loss:
@@ -127,18 +128,19 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             break
 
 
-def update(X_new, p, model, optimizer, loss_fn):
-    x, y, x_i, _ = generate_data(X_new, p)
-    y_hat, _ = model(x, x_i)
-    optimizer.zero_grad()
-    loss = loss_fn(y_hat, y)
-    loss.backward(retain_graph=True)        
-    optimizer.step()
+def update(X_new, p, epochs, model, optimizer, loss_fn):
+    for _ in tqdm(range(epochs)):
+        x, y, x_i, _ = generate_data(X_new, p)
+        y_hat, _ = model(x, x_i)
+        optimizer.zero_grad()
+        loss = loss_fn(y_hat, y)
+        loss.backward(retain_graph=True)        
+        optimizer.step()
     return model, optimizer
 
-def forecast(X, d, p, train_size, lr, until,
+def forecast(X, d, p, train_size, lr, until, epochs, 
             model_path, forecast_path, 
-            shape, device='cpu'):
+            shape, device):
 
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
@@ -155,44 +157,57 @@ def forecast(X, d, p, train_size, lr, until,
     
     # Dynamic forecasting
     preds, F = model(input[:T, ], input_indices[:T, ]) 
-    while True:
+    complete = False
+
+    while not complete:
         with torch.no_grad():            
-            print(f'Forecasting the next {T} steps ...')
-            for t in range(T):
-                x = preds[-p:, :].reshape(1, N, -1)
+            print(f'Forecasting the next {train_size} steps ...')
+            for t in range(train_size):
+                i = t + T
+                x = X.t()[i - p: i, :].reshape(1, N, -1)
                 x_i = torch.LongTensor([[t]])
                 y_hat, _ = model(x, x_i)
                 preds = torch.cat((preds, y_hat))
 
-        remaining = max(0, until + T - preds.size(0)) 
-        print(f'{remaining} steps until completion')
+                L = preds.size(0)
+                remaining = max(0, until + train_size - L) 
+                print(f'{remaining} steps until completion')
         
-        if preds.size(0) - T > until:
-            break
-        
-        # Update model
-        X_new = preds[-T:, ].t()
-        X_new.requires_grad = True
-        print('Updating model ...')
-        model, optimizer = update(X_new, p, model, optimizer, loss_fn)
+                if L >= until + train_size:
+                    complete = True
+                    break
+        T = L
+        if not complete:
+            # Update model
+            X_new = preds[-train_size:, ].t()
+            X_new.requires_grad = True
+            print('Updating model ...')
+            model, optimizer = update(X_new, p, epochs, model, optimizer, loss_fn)
     
-    out = preds[:T + until].t()
-    X = X[:, :T + until]
+    out = preds.t()
+    X = X[:, :T]
     
     loss = loss_fn(out, X)
     print(loss.item())
  
-    out = out.detach().numpy()
-    F = F.detach().numpy()
-    X = X.detach().numpy()
-    
-    write_pickle([X, out, F], forecast_path)    
+    out = out.detach().numpy()  
+    # X = X.detach().numpy()
+    # F = F.detach().numpy()
+    # write_pickle([X, out, F], forecast_path) 
+    np.save(forecast_path, out)    
 
 if __name__ == "__main__":
 
 
     sample_path = 'data/sample.pickle'
-    data_path = 'data/nst_sim_data.csv'
+
+    data_path = sys.argv[1]
+    forecast_path = sys.argv[2]
+    model_path = sys.argv[3]
+
+    # data_path = 'data/nst_sim/csv/s0.csv'
+    # model_path = 'model/nst_sim/model0.pt'
+
 
     df = pd.read_csv(data_path)
     X = df.iloc[:, 1:].to_numpy()
@@ -207,19 +222,16 @@ if __name__ == "__main__":
     lr = 0.01
     p = 1
 
-    model_path = 'model/nst_sim.pt'
+    
     shape = 'monotone_inc'
 
     X_train = X[:, :train_size]
 
 
-    if sys.argv[1] == 'train':
         
-        train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
-    else:
-        forecast_path = 'output/nst_sim.pickle'
-        until = 200
-        forecast(X, d, p, train_size, lr, until, model_path, forecast_path, shape, device='cpu')
+    train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
+    until = 200
+    forecast(X, d, p, train_size, lr, until, 100, model_path, forecast_path, shape, device='cpu')
 
 
 

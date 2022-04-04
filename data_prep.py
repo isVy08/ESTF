@@ -15,6 +15,7 @@ else:
 
     # Sample 30 locations given by ids
     data = data[ids, 2:]
+    np.save('data/mine/data.npy', data)
 
 # Normalize data
 data = normalize(data)
