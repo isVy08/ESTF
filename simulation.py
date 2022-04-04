@@ -127,29 +127,60 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             break
 
 
-def forecast(X, d, p, train_size, model_path, forecast_path, 
+def update(X_new, p, model, optimizer, loss_fn):
+    x, y, x_i, _ = generate_data(X_new, p)
+    y_hat, _ = model(x, x_i)
+    optimizer.zero_grad()
+    loss = loss_fn(y_hat, y)
+    loss.backward(retain_graph=True)        
+    optimizer.step()
+    return model, optimizer
+
+def forecast(X, d, p, train_size, lr, until,
+            model_path, forecast_path, 
             shape, device='cpu'):
 
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
     
-    N, T = X.shape 
+    N, T = X.shape[0], train_size 
 
     input, target, input_indices, target_indices = generate_data(X, p)
     
     model = Model(N, T, g)
-    load_model(model, None, model_path, device)
-    model.eval()
-
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
+    load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
-    
-    print('Predicting ...')
-    pred, F = model(input, input_indices)
-    loss = loss_fn(pred, target)
-    print(loss.item())
 
-    pred = torch.t(pred)
-    out = torch.cat((X[:, :p], pred), dim=-1) 
+    
+    # Dynamic forecasting
+    preds, F = model(input[:T, ], input_indices[:T, ]) 
+    while True:
+        with torch.no_grad():            
+            print(f'Forecasting the next {T} steps ...')
+            for t in range(T):
+                x = preds[-p:, :].reshape(1, N, -1)
+                x_i = torch.LongTensor([[t]])
+                y_hat, _ = model(x, x_i)
+                preds = torch.cat((preds, y_hat))
+
+        remaining = max(0, until + T - preds.size(0)) 
+        print(f'{remaining} steps until completion')
+        
+        if preds.size(0) - T > until:
+            break
+        
+        # Update model
+        X_new = preds[-T:, ].t()
+        X_new.requires_grad = True
+        print('Updating model ...')
+        model, optimizer = update(X_new, p, model, optimizer, loss_fn)
+    
+    out = preds[:T + until].t()
+    X = X[:, :T + until]
+    
+    loss = loss_fn(out, X)
+    print(loss.item())
  
     out = out.detach().numpy()
     F = F.detach().numpy()
@@ -170,8 +201,8 @@ if __name__ == "__main__":
     _, d, _ = load_pickle(sample_path)
     
 
-    train_size = 500
-    batch_size = 500
+    train_size = 300
+    batch_size = 300
     epochs = 1000
     lr = 0.01
     p = 1
@@ -187,7 +218,8 @@ if __name__ == "__main__":
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
         forecast_path = 'output/nst_sim.pickle'
-        forecast(X_train, d, p, train_size, model_path, forecast_path, shape, device='cpu')
+        until = 200
+        forecast(X, d, p, train_size, lr, until, model_path, forecast_path, shape, device='cpu')
 
 
 
