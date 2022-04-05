@@ -74,8 +74,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float() # [N ** 2, N ** 2]
 
-    F = np.log(d+1)
-    F = torch.from_numpy(F)
+
     
     
     N, T = X.shape   
@@ -87,7 +86,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     #  Intialize model
     model = Model(N, T, g)
-    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adagrad(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -96,6 +95,8 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     loss_fn = nn.MSELoss()
     prev_loss = 1e+10
+    F = np.log(d+1)
+    F = torch.from_numpy(F)
 
     for epoch in range(1, epochs + 1):
         train_losses = 0
@@ -115,17 +116,13 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             val_losses += loss_fn(F_hat[:, 0], F).item()
 
         train_loss = train_losses / len(loader)
-        # val_loss = val_losses / len(loader)
-        val_loss = train_losses 
+        val_loss = val_losses / len(loader)
         msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
         print(msg)
         if val_loss < prev_loss:
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             prev_loss = val_loss
-        elif val_loss > prev_loss: 
-            print(f'Early stopping at epoch {epoch}')
-            break
 
 
 def update(X_new, p, epochs, model, optimizer, loss_fn):
@@ -150,7 +147,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
     input, target, input_indices, target_indices = generate_data(X, p)
     
     model = Model(N, T, g)
-    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
 
@@ -186,16 +183,19 @@ def forecast(X, d, p, train_size, lr, until, epochs,
     
     out = preds.t()
     out = torch.cat((X[:, :p], out), dim=-1)
+    T = out.shape[1]
     X = X[:, :T]
     
     loss = loss_fn(out, X)
     print(loss.item())
  
     out = out.detach().numpy()  
-    # X = X.detach().numpy()
-    # F = F.detach().numpy()
-    # write_pickle([X, out, F], forecast_path) 
-    np.save(forecast_path, out)    
+    if '.pickle' in forecast_path:
+        F = F.detach().numpy()
+        X = X.detach().numpy()
+        write_pickle([X, out, F], forecast_path) 
+    else:
+        np.save(forecast_path, out)
 
 if __name__ == "__main__":
 
