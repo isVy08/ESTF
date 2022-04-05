@@ -70,11 +70,20 @@ def basis_function(d, shape):
 
     return np.stack(g, axis=1)
 
-def scale(X, max_, min_):
-    X_std = (X - X.min(axis=1).reshape(-1,1)) / ((X.max(axis=1) - X.min(axis=1)).reshape(-1,1))
-    X_std = X_std * (max_ - min_) + min_
-    return X_std
+def scale(X, max_=1, min_=0):
+  """
+  X shape : [N, T]
+  """
+  from sklearn.preprocessing import MinMaxScaler
+  scaler = MinMaxScaler(feature_range=(min_, max_))
+  X = scaler.fit_transform(X.transpose()).transpose()
+  return X
 
 def normalize(X):
-  X_std = (X - X.mean(1).reshape(-1, 1)) / X.std(1).reshape(-1, 1)
-  return X_std
+  """
+  X shape : [N, T]
+  """
+  from sklearn.preprocessing import StandardScaler
+  scaler = StandardScaler()
+  X = scaler.fit_transform(X.transpose()).transpose()
+  return X

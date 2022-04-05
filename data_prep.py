@@ -18,7 +18,7 @@ else:
     np.save('data/mine/data.npy', data)
 
 # Normalize data
-data = normalize(data)
+data = scale(data)
 
 # Convert to h5 file
 df = pd.DataFrame(data)

@@ -156,7 +156,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
 
     
     # Dynamic forecasting
-    preds, F = model(input[:T, ], input_indices[:T, ]) 
+    preds, F = model(input[:T+1-p, ], input_indices[:T+1-p, ]) 
     complete = False
 
     while not complete:
@@ -173,7 +173,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
                 remaining = max(0, until + train_size - L) 
                 print(f'{remaining} steps until completion')
         
-                if L >= until + train_size:
+                if L >= until + train_size - p:
                     complete = True
                     break
         T = L
@@ -185,6 +185,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
             model, optimizer = update(X_new, p, epochs, model, optimizer, loss_fn)
     
     out = preds.t()
+    out = torch.cat((X[:, :p], out), dim=-1)
     X = X[:, :T]
     
     loss = loss_fn(out, X)
