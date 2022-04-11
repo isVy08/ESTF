@@ -21,9 +21,6 @@ def generate_data(X, p):
     
     return torch.stack(input), torch.stack(target), torch.stack(input_indices), target_indices
 
-def generate_alphas(lower, upper, AT=4000):
-    alphas = [[lower]] + [ [ (1 - (t-1)/AT) * lower + (t-1)/AT * upper ]  for t in range(2, AT+1)]
-    return torch.Tensor(alphas)
 
 class Model(nn.Module):
     def __init__(self, N, T, g):
@@ -37,7 +34,7 @@ class Model(nn.Module):
         # Defining some parameters        
         self.weights = nn.Parameter(nn.init.uniform_(torch.empty(N * N, 1)))
 
-        self.alphas = nn.Parameter(nn.init.normal_(torch.empty(T, 1)))
+        self.alphas = nn.Parameter(nn.init.ones_(torch.empty(T, 1)))
 
     def forward(self, x, x_i):
         """
@@ -48,21 +45,15 @@ class Model(nn.Module):
     
         # Shape function
         F = torch.matmul(self.g, self.weights ** 2) # [N ** 2, 1]
-        W = torch.matmul(self.alphas ** 2, -F.t()) # [T, N ** 2]
+        W = torch.matmul(self.alphas, -F.t()) # [T, N ** 2]
         
         wg = W.reshape(-1, self.N, self.N) #[T, N, N]
         f = torch.softmax(wg, -1) # [T, N, N]
-        
-        Z = 0
-        for p in range(x.size(-1)):
-            steps = x_i[:, p]
-        
-            f_ = f[steps, :]
+        f_ = f[x_i]
+        x_ = torch.swapaxes(x, 1, 2).unsqueeze(-1)
 
-            a = (x[:, :, p]).unsqueeze(-1)
-            z = torch.matmul(f_, a)
-            Z += z.squeeze(-1)
-        
+        Z = torch.matmul(f_, x_)
+        Z = Z.sum((1, -1))
         return Z, F
 
 
@@ -74,9 +65,6 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float() # [N ** 2, N ** 2]
 
-
-    
-    
     N, T = X.shape   
 
     # Generate data 
@@ -86,7 +74,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     #  Intialize model
     model = Model(N, T, g)
-    optimizer = torch.optim.Adagrad(model.parameters(), lr=lr)
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -147,9 +135,11 @@ def forecast(X, d, p, train_size, lr, until, epochs,
     input, target, input_indices, target_indices = generate_data(X, p)
     
     model = Model(N, T, g)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
+
+    alphas = model.alphas
 
     
     # Dynamic forecasting
@@ -190,12 +180,11 @@ def forecast(X, d, p, train_size, lr, until, epochs,
     print(loss.item())
  
     out = out.detach().numpy()  
-    if '.pickle' in forecast_path:
-        F = F.detach().numpy()
-        X = X.detach().numpy()
-        write_pickle([X, out, F], forecast_path) 
-    else:
-        np.save(forecast_path, out)
+    
+    F = F.detach().numpy()
+    X = X.detach().numpy()
+    alphas = alphas.detach().numpy()
+    write_pickle([X, out, F, alphas], forecast_path) 
 
 if __name__ == "__main__":
 
@@ -219,7 +208,7 @@ if __name__ == "__main__":
 
     train_size = 300
     batch_size = 300
-    epochs = 1000
+    epochs = 200
     lr = 0.01
     p = 1
 
