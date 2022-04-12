@@ -207,7 +207,7 @@ if __name__ == "__main__":
     
 
     train_size = 300
-    batch_size = 300
+    batch_size = 30
     epochs = 200
     lr = 0.01
     p = 1
