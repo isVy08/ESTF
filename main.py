@@ -219,10 +219,10 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast_path = 'output/mine.pickle'
+        forecast_path = 'output/mine_h5.pickle'
         until = 1000
         epochs = 100
-        h = 1
+        h = 5
         forecast(X, d, p, train_size, lr, until, epochs, h, model_path, forecast_path, shape, device='cpu')
 
 
