@@ -32,7 +32,7 @@ class Model(nn.Module):
         self.T = T
 
         # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.xavier_normal_(torch.empty(N * N, T)))
+        self.weights = nn.Parameter(nn.init.xavier_uniform_(torch.empty(N * N, T)))
 
     def forward(self, x, x_i):
         """
@@ -42,8 +42,8 @@ class Model(nn.Module):
         self.g.requires_grad = False
     
         # Shape function
-        weights = nn.functional.relu(self.weights)
-        F = torch.matmul(self.g, weights) # [N ** 2, T]
+        
+        F = torch.matmul(self.g, self.weights ** 2) # [N ** 2, T]
         
         wg = F.t().reshape(-1, self.N, self.N) #[T, N, N]
         f = torch.softmax(-wg, -1) # [T, N, N]
@@ -104,8 +104,8 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
         msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
         print(msg)
         if val_loss < prev_loss:
-            print('Saving model ...')
-            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
+            # print('Saving model ...')
+            # torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             prev_loss = val_loss
         elif val_loss > prev_loss:
             break
@@ -204,8 +204,8 @@ if __name__ == "__main__":
     
 
     train_size = 300
-    batch_size = 300
-    epochs = 500
+    batch_size = 30
+    epochs = 100
     lr = 0.01
     p = 1
 
@@ -222,7 +222,7 @@ if __name__ == "__main__":
 
 
         
-    train(X_train, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu')
+    # train(X_train, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu')
     until = 200
     forecast(X, d, p, train_size, lr, until, 100, model_path, forecast_path, shape, device='cpu')
 
