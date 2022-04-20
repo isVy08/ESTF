@@ -32,7 +32,7 @@ class Model(nn.Module):
         self.T = T
 
         # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.constant_(torch.empty(N * N, T), 0.1))
+        self.weights = nn.Parameter(nn.init.xavier_normal_(torch.empty(N * N, T)))
 
     def forward(self, x, x_i):
         """
@@ -42,7 +42,8 @@ class Model(nn.Module):
         self.g.requires_grad = False
     
         # Shape function
-        F = torch.matmul(self.g, self.weights ** 2) # [N ** 2, T]
+        weights = nn.functional.relu(self.weights)
+        F = torch.matmul(self.g, weights) # [N ** 2, T]
         
         wg = F.t().reshape(-1, self.N, self.N) #[T, N, N]
         f = torch.softmax(-wg, -1) # [T, N, N]
@@ -204,7 +205,7 @@ if __name__ == "__main__":
 
     train_size = 300
     batch_size = 300
-    epochs = 300
+    epochs = 500
     lr = 0.01
     p = 1
 
@@ -212,6 +213,7 @@ if __name__ == "__main__":
     shape = 'monotone_inc'
 
     i = int(sys.argv[4])
+    # i = 0
     F = np.load('data/quad_sim/F.npy')
     F = torch.from_numpy(F[i, :train_size, :].transpose())
 
