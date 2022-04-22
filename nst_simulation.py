@@ -32,9 +32,7 @@ class Model(nn.Module):
         self.T = T
 
         # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.uniform_(torch.empty(N * N, 1)))
-
-        self.alphas = nn.Parameter(nn.init.ones_(torch.empty(T, 1)))
+        self.weights = nn.Parameter(nn.init.xavier_normal_(torch.empty(N * N, T)))
 
     def forward(self, x, x_i):
         """
@@ -44,11 +42,10 @@ class Model(nn.Module):
         self.g.requires_grad = False
     
         # Shape function
-        F = torch.matmul(self.g, self.weights ** 2) # [N ** 2, 1]
-        W = torch.matmul(self.alphas, -F.t()) # [T, N ** 2]
+        F = torch.matmul(self.g, self.weights ** 2) # [N ** 2, T]
         
-        wg = W.reshape(-1, self.N, self.N) #[T, N, N]
-        f = torch.softmax(wg, -1) # [T, N, N]
+        wg = F.t().reshape(-1, self.N, self.N) #[T, N, N]
+        f = torch.softmax(-wg, -1) # [T, N, N]
         f_ = f[x_i]
         x_ = torch.swapaxes(x, 1, 2).unsqueeze(-1)
 
@@ -58,7 +55,7 @@ class Model(nn.Module):
 
 
 
-def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
+def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
     
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
     
@@ -74,7 +71,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     #  Intialize model
     model = Model(N, T, g)
-    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -83,8 +80,6 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     loss_fn = nn.MSELoss()
     prev_loss = 1e+10
-    # F = np.log(d+1)
-    # F = torch.from_numpy(F)
 
     for epoch in range(1, epochs + 1):
         train_losses = 0
@@ -101,18 +96,18 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             
             optimizer.step()
             train_losses += loss.item()
-            val_losses += 0 #loss_fn(F_hat[:, 0], F).item()
+            val_losses += loss_fn(F_hat, F).item()
 
         train_loss = train_losses / len(loader)
         val_loss = val_losses / len(loader)
         msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
         print(msg)
-        if train_loss < prev_loss:
+        if val_loss < prev_loss:
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
-            prev_loss = train_loss
-        # elif train_loss > prev_loss:
-        #     break
+            prev_loss = val_loss
+        elif val_loss > prev_loss:
+            break
 
 
 def update(X_new, p, epochs, model, optimizer, loss_fn):
@@ -137,11 +132,9 @@ def forecast(X, d, p, train_size, lr, until, epochs,
     input, target, input_indices, target_indices = generate_data(X, p)
     
     model = Model(N, T, g)
-    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
-
-    alphas = model.alphas
 
     
     # Dynamic forecasting
@@ -185,8 +178,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
     
     F = F.detach().numpy()
     X = X.detach().numpy()
-    alphas = alphas.detach().numpy()
-    write_pickle([X, out, F, alphas], forecast_path) 
+    write_pickle([X, out, F], forecast_path) 
 
 if __name__ == "__main__":
 
@@ -199,6 +191,8 @@ if __name__ == "__main__":
 
     # data_path = 'data/nst_sim/csv/s0.csv'
     # model_path = 'model/nst_sim/model0.pt'
+    # forecast_path = 'output/nst_sim/out0.pickle'
+
 
 
     df = pd.read_csv(data_path)
@@ -209,19 +203,25 @@ if __name__ == "__main__":
     
 
     train_size = 300
-    batch_size = 300
-    epochs = 300
-    lr = 0.01
+    batch_size = 10
+    epochs = 100
+    lr = 0.1
     p = 1
 
     
     shape = 'monotone_inc'
 
+    i = int(sys.argv[4])
+    # i = 0
+    F = np.load('data/nst_sim/F.npy')
+    F = torch.from_numpy(F[i, :train_size, :].transpose()).float()
+
+
     X_train = X[:, :train_size]
 
 
         
-    train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
+    train(X_train, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu')
     until = 200
     forecast(X, d, p, train_size, lr, until, 100, model_path, forecast_path, shape, device='cpu')
 

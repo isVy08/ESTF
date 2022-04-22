@@ -22,36 +22,32 @@ def generate_data(X, p):
     return torch.stack(input), torch.stack(target), torch.stack(input_indices), target_indices
 
 
+class Square(nn.Module):
+    def forward(self, x):
+        return torch.square(x)
+
 class Model(nn.Module):
-    def __init__(self, N, T, g):
+    def __init__(self, N):
         
         super(Model, self).__init__()
 
-        self.g = g
         self.N = N
-        self.T = T
+        # Defining some parameters 
+        w = torch.empty(N * N, 1)       
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=0.5))
 
-        # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.xavier_uniform_(torch.empty(N * N, T)))
-
-    def forward(self, x, x_i):
+    def forward(self, x, g):
         """
-        x : [b, N, p]
-        x_i : [b, p]
+        x : [N, p]
         """
-        self.g.requires_grad = False
-    
         # Shape function
+        F = torch.matmul(g, self.weights ** 2) # [N ** 2, 1]
+        # F = self.layer(g)
         
-        F = torch.matmul(self.g, self.weights ** 2) # [N ** 2, T]
-        
-        wg = F.t().reshape(-1, self.N, self.N) #[T, N, N]
-        f = torch.softmax(-wg, -1) # [T, N, N]
-        f_ = f[x_i]
-        x_ = torch.swapaxes(x, 1, 2).unsqueeze(-1)
-
-        Z = torch.matmul(f_, x_)
-        Z = Z.sum((1, -1))
+        wg = F.reshape(self.N, self.N) #[N, N]
+        f = torch.softmax(-wg, -1) # [N, N]
+        Z = f @ x
+        Z = Z.sum(-1)
         return Z, F
 
 
@@ -70,129 +66,54 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
     input, target, input_indices, target_indices = generate_data(X, p)
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
-    #  Intialize model
-    model = Model(N, T, g)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-
-    if os.path.isfile(model_path):
-        load_model(model, optimizer, model_path, device)
-    else:
-        model.to(device)
-
+    F_est = torch.zeros_like(F)
     loss_fn = nn.MSELoss()
-    prev_loss = 1e+10
 
-    for epoch in range(1, epochs + 1):
-        train_losses = 0
-        val_losses = 0
-        for idx in tqdm(loader): 
-            y = target[idx, ]
-            x = input[idx, ]
-            x_i = input_indices[idx, ]
+    for i in range(T-1):
+        print("Training ")
+        x = input[i, ]
+        y = target[i, ]
+        model = Model(N)
+        optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
-            pred, F_hat = model(x, x_i)
+        prev_loss = 2e+10
+        for epoch in range(1, epochs+1):
+            pred, F_hat = model(x, g)
             optimizer.zero_grad()
-            loss = loss_fn(pred, y)
+            loss = loss_fn(pred, y) # + loss_fn(F_hat, F[:, i:i+1])
             loss.backward()
             
             optimizer.step()
-            train_losses += loss.item()
-            val_losses += loss_fn(F_hat, F).item()
+            
+            vloss = loss_fn(F_hat, F[:, i:i+1]).item()
 
-        train_loss = train_losses / len(loader)
-        val_loss = val_losses / len(loader)
-        msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
-        print(msg)
-        if val_loss < prev_loss:
-            # print('Saving model ...')
-            # torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
-            prev_loss = val_loss
-        elif val_loss > prev_loss:
-            break
-
-
-def update(X_new, p, epochs, model, optimizer, loss_fn):
-    for _ in tqdm(range(epochs)):
-        x, y, x_i, _ = generate_data(X_new, p)
-        y_hat, _ = model(x, x_i)
-        optimizer.zero_grad()
-        loss = loss_fn(y_hat, y)
-        loss.backward(retain_graph=True)        
-        optimizer.step()
-    return model, optimizer
-
-def forecast(X, d, p, train_size, lr, until, epochs, 
-            model_path, forecast_path, 
-            shape, device):
-
-    g = basis_function(d, shape)
-    g = torch.from_numpy(g).float()
-    
-    N, T = X.shape[0], train_size 
-
-    input, target, input_indices, target_indices = generate_data(X, p)
-    
-    model = Model(N, T, g)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    load_model(model, optimizer, model_path, device)
-    loss_fn = nn.MSELoss()
-
-    
-    # Dynamic forecasting
-    preds, F = model(input[:T+1-p, ], input_indices[:T+1-p, ]) 
-    complete = False
-
-    while not complete:
-        with torch.no_grad():            
-            print(f'Forecasting the next {train_size} steps ...')
-            for t in range(train_size):
-                i = t + T
-                x = X.t()[i - p: i, :].reshape(1, N, -1)
-                x_i = torch.LongTensor([[t]])
-                y_hat, _ = model(x, x_i)
-                preds = torch.cat((preds, y_hat))
-
-                L = preds.size(0)
-                remaining = max(0, until + train_size - L) 
-                print(f'{remaining} steps until completion')
+            msg = f"Epoch: {epoch}, Train loss: {loss:.5f}, Val loss: {vloss:.5f}"
+            print(msg)
+            if vloss < prev_loss:
+                print(f'Continue with i = {i}  ...')
+                prev_loss = vloss
+            # elif vloss > prev_loss:
+            #     break
         
-                if L >= until + train_size - p:
-                    complete = True
-                    break
-        T = L
-        if not complete:
-            # Update model
-            X_new = preds[-train_size:, ].t()
-            X_new.requires_grad = True
-            print('Updating model ...')
-            model, optimizer = update(X_new, p, epochs, model, optimizer, loss_fn)
+        F_est[:, i] = F_hat.squeeze(-1)
     
-    out = preds.t()
-    out = torch.cat((X[:, :p], out), dim=-1)
-    T = out.shape[1]
-    X = X[:, :T]
-    
-    loss = loss_fn(out, X)
-    print(loss.item())
- 
-    out = out.detach().numpy()  
-    
-    F = F.detach().numpy()
-    X = X.detach().numpy()
-    write_pickle([X, out, F], forecast_path) 
+    # Save forecasting
+    F_hat = F_est.detach().numpy().transpose()
+    np.save('data/nst_sim/Fhat.npy', F_hat)
+
 
 if __name__ == "__main__":
 
 
     sample_path = 'data/sample.pickle'
 
-    data_path = sys.argv[1]
-    forecast_path = sys.argv[2]
-    model_path = sys.argv[3]
+    # data_path = sys.argv[1]
+    # forecast_path = sys.argv[2]
+    # model_path = sys.argv[3]
 
-    # data_path = 'data/quad_sim/csv/s0.csv'
-    # model_path = 'model/quad_sim/model0.pt'
-    # forecast_path = 'output/quad_sim/out0.pickle'
+    data_path = 'data/nst_sim/csv/s0.csv'
+    model_path = 'model/nst_sim/model0.pt'
+    forecast_path = 'output/nst_sim/out0.pickle'
 
 
 
@@ -203,29 +124,24 @@ if __name__ == "__main__":
     _, d, _ = load_pickle(sample_path)
     
 
-    train_size = 300
-    batch_size = 30
+    train_size = 30
+    batch_size = 10
     epochs = 100
-    lr = 0.01
+    lr = 0.001
     p = 1
 
     
     shape = 'monotone_inc'
 
-    i = int(sys.argv[4])
-    # i = 0
-    F = np.load('data/quad_sim/F.npy')
-    F = torch.from_numpy(F[i, :train_size, :].transpose())
+    # i = int(sys.argv[4])
+    i = 0
+    F = np.load('data/nst_sim/F.npy')
+    F = torch.from_numpy(F[i, :train_size, :].transpose()).float()
 
 
     X_train = X[:, :train_size]
-
-
-        
-    # train(X_train, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu')
-    until = 200
-    forecast(X, d, p, train_size, lr, until, 100, model_path, forecast_path, shape, device='cpu')
-
+    train(X_train, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu')
+ 
 
 
 
