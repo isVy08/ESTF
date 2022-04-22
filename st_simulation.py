@@ -138,7 +138,7 @@ if __name__ == "__main__":
     
     p = 1
 
-    _, d, _ = load_pickle(sample_path)
+    _, d = load_pickle(sample_path)
 
             
     X_train = X[:, :train_size]  

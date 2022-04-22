@@ -34,7 +34,7 @@ else:
 
 if os.path.isfile(f'data/{dataset}/data.npy'):
     data = np.load(f'data/{dataset}/data.npy')
-    ids, d, _ = load_pickle(location_path)
+    ids, d = load_pickle(location_path)
 else:
     import scipy.io as sio
     

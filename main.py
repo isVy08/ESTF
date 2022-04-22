@@ -25,7 +25,7 @@ def generate_data(X, p):
 
 
 class Model(nn.Module):
-    def __init__(self, N, T, g):
+    def __init__(self, N, T):
         
         super(Model, self).__init__()
 
@@ -34,22 +34,18 @@ class Model(nn.Module):
         self.T = T
 
         # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.uniform_(torch.empty(N * N, 1)))
+        self.weights = nn.Parameter(nn.init.uniform_(torch.empty(N * N, T)))
 
-        self.alphas = nn.Parameter(nn.init.ones_(torch.empty(T, 1)))
 
-    def forward(self, x, x_i):
+    def forward(self, x, x_i, g):
         """
         x : [b, N, p]
         x_i : [b, p]
         """
-        self.g.requires_grad = False
-    
         # Shape function
-        F = torch.matmul(self.g, self.weights ** 2) # [N ** 2, 1]
-        W = torch.matmul(self.alphas, -F.t()) # [T, N ** 2]
+        F = torch.matmul(g, self.weights ** 2) # [N ** 2, 1]
         
-        wg = W.reshape(-1, self.N, self.N) #[T, N, N]
+        wg = F.t().reshape(-1, self.N, self.N) #[T, N, N]
         f = torch.softmax(wg, -1) # [T, N, N]
         f_ = f[x_i]
         x_ = torch.swapaxes(x, 1, 2).unsqueeze(-1)
@@ -65,10 +61,6 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float() # [N ** 2, N ** 2]
-
-    F = np.log(d+1)
-    F = torch.from_numpy(F)
-    
     
     N, T = X.shape   
 
@@ -78,7 +70,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
-    model = Model(N, T, g)
+    model = Model(N, T)
     optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -96,7 +88,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             x = input[idx, ]
             x_i = input_indices[idx, ]
 
-            pred, F_hat = model(x, x_i)
+            pred, F_hat = model(x, x_i, g)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
             loss.backward()
@@ -209,7 +201,7 @@ if __name__ == "__main__":
 
     X = np.load(data_path)
     # X = scale(X, max_=5)
-    _, d, _ = load_pickle(sample_path)
+    _, d = load_pickle(sample_path)
     X = torch.from_numpy(X).float()
          
     X_train = X[:, :train_size]

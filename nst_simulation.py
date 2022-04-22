@@ -198,7 +198,7 @@ if __name__ == "__main__":
     X = df.iloc[:, 1:].to_numpy()
 
     X = torch.from_numpy(X).float()
-    _, d, _ = load_pickle(sample_path)
+    _, d = load_pickle(sample_path)
     
 
     train_size = 300
