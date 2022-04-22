@@ -13,33 +13,35 @@ def calDist(data, ids):
             d.append(np.sqrt(x+y))
     return np.array(d)
     
-
-
-
-sqrt((x[1]-y[1])^2+(x[2]-y[2])^2)
-
 dataset = sys.argv[1] # mine / air
 
 # Select locations and distance
 
 if dataset == 'mine':
+    # col 1: lat, col 2: long
     data_path = 'data/mine_data.mat'
     location_path = 'data/sample.pickle'
-elif dataset == 'air' 
+    name = 'data'
+elif dataset == 'air':
+    # col 1: index, col 2: lat, col 3: long
     data_path = 'data/air/air.mat'
     location_path = 'data/air/sample.pickle'
+    name = 'realcase_air'
 else: 
     raise ValueError('Unknown Dataset')
 
 
 if os.path.isfile(f'data/{dataset}/data.npy'):
     data = np.load(f'data/{dataset}/data.npy')
-    ids, d, _ = load_pickle(location_path)
+    ids, d = load_pickle(location_path)
 else:
     import scipy.io as sio
     
     matdata = sio.loadmat(data_path)
-    data = matdata['data']
+    data = matdata[name]
+
+    if dataset == 'air':
+        data = data[:, 1:]
 
     # Sample locations
     import random
@@ -48,8 +50,7 @@ else:
     ids = random.sample(range(N), 50)
 
     d = calDist(data, ids)
-
-
+    write_pickle((ids, d), location_path)
 
     # Sample 30 locations given by ids
     data = data[ids, 2:]
