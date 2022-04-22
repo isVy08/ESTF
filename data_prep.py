@@ -47,7 +47,7 @@ else:
     import random
     random.seed(18)
     N, T = data.shape
-    ids = random.sample(range(N), 50)
+    ids = random.sample(range(N), 30)
 
     d = calDist(data, ids)
     write_pickle((ids, d), location_path)
