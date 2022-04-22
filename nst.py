@@ -27,14 +27,14 @@ class Square(nn.Module):
         return torch.square(x)
 
 class Model(nn.Module):
-    def __init__(self, N):
+    def __init__(self, N, gain):
         
         super(Model, self).__init__()
 
         self.N = N
         # Defining some parameters 
         w = torch.empty(N * N, 1)       
-        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=0.5))
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=gain))
 
     def forward(self, x, g):
         """
@@ -52,7 +52,7 @@ class Model(nn.Module):
 
 
 
-def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
+def train(X, d, p, path, epochs, lr, shape, F, device='cpu'):
     
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
     
@@ -73,10 +73,16 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
         print("Training ")
         x = input[i, ]
         y = target[i, ]
-        model = Model(N)
+        if i < 50:
+            gain = 0.50
+        # elif i < 100: 
+        #     gain = 0.75
+        else:
+            gain = 0.75
+        model = Model(N, gain)
         optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
-        prev_loss = 2e+10
+        prev_loss = 1e+10
         for epoch in range(1, epochs+1):
             pred, F_hat = model(x, g)
             optimizer.zero_grad()
@@ -92,29 +98,27 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
             if vloss < prev_loss:
                 print(f'Continue with i = {i}  ...')
                 prev_loss = vloss
-            # elif vloss > prev_loss:
-            #     break
-        
-        F_est[:, i] = F_hat.squeeze(-1)
+                F_est[:, i] = F_hat.squeeze(-1)
+            elif vloss > prev_loss:
+                print('-' * 50)
+                break
+
     
     # Save forecasting
     F_hat = F_est.detach().numpy().transpose()
-    np.save('data/nst_sim/Fhat.npy', F_hat)
+    np.save(path, F_hat)
 
 
 if __name__ == "__main__":
 
-
     sample_path = 'data/sample.pickle'
 
-    # data_path = sys.argv[1]
+    i = int(sys.argv[1])
     # forecast_path = sys.argv[2]
     # model_path = sys.argv[3]
 
-    data_path = 'data/nst_sim/csv/s0.csv'
-    model_path = 'model/nst_sim/model0.pt'
-    forecast_path = 'output/nst_sim/out0.pickle'
-
+    data_path = f'data/nst_sim/csv/s{i}.csv'
+    path = f'output/nst_sim/Fhat{i}.npy'
 
 
     df = pd.read_csv(data_path)
@@ -124,23 +128,20 @@ if __name__ == "__main__":
     _, d, _ = load_pickle(sample_path)
     
 
-    train_size = 30
+    train_size = 302
     batch_size = 10
     epochs = 100
-    lr = 0.001
+    lr = 0.01
     p = 1
 
     
     shape = 'monotone_inc'
-
-    # i = int(sys.argv[4])
-    i = 0
     F = np.load('data/nst_sim/F.npy')
     F = torch.from_numpy(F[i, :train_size, :].transpose()).float()
 
 
     X_train = X[:, :train_size]
-    train(X_train, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu')
+    train(X_train, d, p, path, epochs, lr, shape, F, device='cpu')
  
 
 
