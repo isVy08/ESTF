@@ -23,18 +23,17 @@ def generate_data(X, p):
     return torch.stack(input), torch.stack(target), torch.stack(input_indices), target_indices
 
 
-
 class Model(nn.Module):
     def __init__(self, N, T):
         
         super(Model, self).__init__()
 
-        self.g = g
         self.N = N
         self.T = T
 
         # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.uniform_(torch.empty(N * N, T)))
+        self.weights = nn.Parameter(nn.init.normal_(torch.empty(N * N, 1)))
+        self.alphas = nn.Parameter(nn.init.uniform_(torch.empty(1, T)))
 
 
     def forward(self, x, x_i, g):
@@ -44,6 +43,7 @@ class Model(nn.Module):
         """
         # Shape function
         F = torch.matmul(g, self.weights ** 2) # [N ** 2, 1]
+        F = torch.matmul(F, self.alphas)
         
         wg = F.t().reshape(-1, self.N, self.N) #[T, N, N]
         f = torch.softmax(wg, -1) # [T, N, N]
@@ -101,13 +101,13 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         print(msg)
         if train_loss < prev_loss:
             print('Saving model ...')
-            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
+            # torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             prev_loss = train_loss
 
-def update(X_new, p, epochs, model, optimizer, loss_fn):
+def update(X_new, p, g, epochs, model, optimizer, loss_fn):
     for _ in tqdm(range(epochs)):
         x, y, x_i, _ = generate_data(X_new, p)
-        y_hat, _ = model(x, x_i)
+        y_hat, _ = model(x, x_i, g)
         optimizer.zero_grad()
         loss = loss_fn(y_hat, y)
         loss.backward(retain_graph=True)        
@@ -126,14 +126,14 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
 
     input, target, input_indices, target_indices = generate_data(X, p)
     
-    model = Model(N, T, g)
-    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
+    model = Model(N, T)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
 
     
     # Dynamic forecasting
-    preds, F = model(input[:T-p, ], input_indices[:T-p, ]) # starting x_5
+    preds, F = model(input[:T-p, ], input_indices[:T-p, ], g) # starting x_5
     complete = False
 
     while not complete:
@@ -147,7 +147,7 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
                 x = X.t()[i - p: i, :].reshape(1, N, -1)
                 for _ in range(h):
                     x_i = torch.arange(t, t + p).unsqueeze(0)
-                    y_hat, _ = model(x, x_i)
+                    y_hat, _ = model(x, x_i, g)
                     preds = torch.cat((preds, y_hat))
                     
                     L = preds.size(0)
@@ -167,7 +167,7 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
             X_new = preds[-train_size:, ].t()
             X_new.requires_grad = True
             print('Updating model ...')
-            model, optimizer = update(X_new, p, epochs, model, optimizer, loss_fn)
+            model, optimizer = update(X_new, p, g, epochs, model, optimizer, loss_fn)
     
     out = preds.t()
     out = torch.cat((X[:, :p], out), dim=-1)
@@ -180,27 +180,26 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
     out = out.detach().numpy()  
     X = X.detach().numpy()
     F = F.detach().numpy()
-    alphas = model.alphas.detach().numpy()
-    write_pickle([X, out, F, alphas], forecast_path) 
+    write_pickle([X, out, F], forecast_path) 
     
 
 if __name__ == "__main__":
 
     sample_path = 'data/sample.pickle'
     data_path = 'data/mine/data.npy'
-    model_path = 'model/mine.pt'
+    model_path = 'model/mine2.pt'
     
 
     train_size = 3000
-    batch_size = train_size
-    epochs = 100
+    batch_size = 3000
+    epochs = 300
     lr = 0.01
     
     p = 1
 
 
     X = np.load(data_path)
-    # X = scale(X, max_=5)
+    # X = normalize(X)
     _, d = load_pickle(sample_path)
     X = torch.from_numpy(X).float()
          
@@ -211,10 +210,10 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast_path = 'output/mine_h5.pickle'
+        forecast_path = 'output/mine2.pickle'
         until = 1000
         epochs = 100
-        h = 5
+        h = 1
         forecast(X, d, p, train_size, lr, until, epochs, h, model_path, forecast_path, shape, device='cpu')
 
 
