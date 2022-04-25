@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import torch.nn as nn
 from tqdm import tqdm
+from model import Model1, Model2
 from torch.utils.data import DataLoader
 
 
@@ -23,38 +24,6 @@ def generate_data(X, p):
     return torch.stack(input), torch.stack(target), torch.stack(input_indices), target_indices
 
 
-class Model(nn.Module):
-    def __init__(self, N, T):
-        
-        super(Model, self).__init__()
-
-        self.N = N
-        self.T = T
-
-        # Defining some parameters        
-        self.weights = nn.Parameter(nn.init.normal_(torch.empty(N * N, 1)))
-        self.alphas = nn.Parameter(nn.init.uniform_(torch.empty(1, T)))
-
-
-    def forward(self, x, x_i, g):
-        """
-        x : [b, N, p]
-        x_i : [b, p]
-        """
-        # Shape function
-        F = torch.matmul(g, self.weights ** 2) # [N ** 2, 1]
-        F = torch.matmul(F, self.alphas)
-        
-        wg = F.t().reshape(-1, self.N, self.N) #[T, N, N]
-        f = torch.softmax(wg, -1) # [T, N, N]
-        f_ = f[x_i]
-        x_ = torch.swapaxes(x, 1, 2).unsqueeze(-1)
-
-        Z = torch.matmul(f_, x_)
-        Z = Z.sum((1, -1))
-        return Z, F
-
-
 def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
@@ -70,7 +39,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
-    model = Model(N, T)
+    model = Model1(N, T)
     optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -101,7 +70,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         print(msg)
         if train_loss < prev_loss:
             print('Saving model ...')
-            # torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
+            torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             prev_loss = train_loss
 
 def update(X_new, p, g, epochs, model, optimizer, loss_fn):
@@ -126,8 +95,8 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
 
     input, target, input_indices, target_indices = generate_data(X, p)
     
-    model = Model(N, T)
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    model = Model1(N, T)
+    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
 
@@ -187,13 +156,13 @@ if __name__ == "__main__":
 
     sample_path = 'data/sample.pickle'
     data_path = 'data/mine/data.npy'
-    model_path = 'model/mine2.pt'
+    model_path = 'model/mine.pt'
     
 
     train_size = 3000
     batch_size = 3000
-    epochs = 300
-    lr = 0.01
+    epochs = 1000
+    lr = 0.001
     
     p = 1
 
@@ -210,7 +179,7 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast_path = 'output/mine2.pickle'
+        forecast_path = 'output/mine.pickle'
         until = 1000
         epochs = 100
         h = 1
