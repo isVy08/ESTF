@@ -34,7 +34,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     # Generate data 
     # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T], alphas: [T]
-    input, target, input_indices, target_indices = generate_data(X, p)
+    input, target, input_indices, _ = generate_data(X, p)
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
@@ -92,7 +92,7 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
     
     N, T = X.shape[0], train_size 
 
-    input, target, input_indices, target_indices = generate_data(X, p)
+    input, target, input_indices, _ = generate_data(X, p)
     
     model = Model1(N, T)
     optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
@@ -158,10 +158,10 @@ if __name__ == "__main__":
     model_path = 'model/air.pt'
     
 
-    train_size = 200
-    batch_size = 200
-    epochs = 10000
-    lr = 0.001
+    train_size = 300
+    batch_size = 300
+    epochs = 1000
+    lr = 0.01
     
     p = 1
 
@@ -179,7 +179,7 @@ if __name__ == "__main__":
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
         forecast_path = 'output/air.pickle'
-        until = 300
+        until = 100
         epochs = 100
         h = 1
         forecast(X, d, p, train_size, lr, until, epochs, h, model_path, forecast_path, shape, device='cpu')

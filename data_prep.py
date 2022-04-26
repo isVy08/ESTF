@@ -1,4 +1,5 @@
 import os
+import sys
 from utils import *
 import pandas as pd
 from tqdm import tqdm
@@ -13,6 +14,15 @@ def calDist(data, ids):
             d.append(np.sqrt(x+y))
     return np.array(d)
     
+def filter(data):
+    N, T = data.shape
+    selected = []
+    for loc in range(N):
+        if (data[loc, :] == 0).sum() < (T//2): 
+            selected.append(loc)
+    return selected
+
+
 dataset = sys.argv[1] # mine / air
 
 # Select locations and distance
@@ -43,11 +53,8 @@ else:
     if dataset == 'air':
         data = data[:, 1:]
 
-    # Sample locations
-    import random
-    random.seed(18)
-    N, T = data.shape
-    ids = random.sample(range(N), 30)
+    # Get locations
+    ids = filter(data)
 
     d = calDist(data, ids)
     write_pickle((ids, d), location_path)

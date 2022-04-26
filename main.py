@@ -39,7 +39,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
-    model = Model1(N, T)
+    model = Model2(N, T)
     optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -95,7 +95,7 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
 
     input, target, input_indices, target_indices = generate_data(X, p)
     
-    model = Model1(N, T)
+    model = Model2(N, T)
     optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
@@ -156,7 +156,7 @@ if __name__ == "__main__":
 
     sample_path = 'data/sample.pickle'
     data_path = 'data/mine/data.npy'
-    model_path = 'model/mine.pt'
+    model_path = 'model/mine2.pt'
     
 
     train_size = 3000
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast_path = 'output/mine.pickle'
+        forecast_path = 'output/mine2.pickle'
         until = 1000
         epochs = 100
         h = 1

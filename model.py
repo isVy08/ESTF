@@ -11,7 +11,7 @@ class Model1(nn.Module):
 
         # Defining some parameters        
         w = torch.empty(N * N, T)       
-        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=0.85))
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=3.5))
 
     def forward(self, x, x_i, g):
         """

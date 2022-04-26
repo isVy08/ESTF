@@ -33,11 +33,11 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
 
     # Generate data 
     # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T], alphas: [T]
-    input, target, input_indices, target_indices = generate_data(X, p)
+    input, target, input_indices, _ = generate_data(X, p)
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
-    model = Model2(N, T)
+    model = Model1(N, T)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -96,9 +96,9 @@ def forecast(X, d, p, train_size, lr, until, epochs,
     
     N, T = X.shape[0], train_size 
 
-    input, target, input_indices, target_indices = generate_data(X, p)
+    input, target, input_indices, _ = generate_data(X, p)
     
-    model = Model2(N, T)
+    model = Model1(N, T)
     optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
@@ -159,10 +159,12 @@ if __name__ == "__main__":
     data_path = sys.argv[1]
     forecast_path = sys.argv[2]
     model_path = sys.argv[3]
+    i = int(sys.argv[4])
 
     # data_path = 'data/nst_sim/csv/s0.csv'
     # model_path = 'model/test.pt'
     # forecast_path = 'output/test.pickle'
+    # i = 0
 
 
 
@@ -175,15 +177,13 @@ if __name__ == "__main__":
 
     train_size = 300
     batch_size = 300
-    epochs = 300
+    epochs = 1000
     lr = 0.01
     p = 1
 
     
     shape = 'monotone_inc'
 
-    # i = int(sys.argv[4])
-    i = 0
     F = np.load('data/nst_sim/F.npy')
     F = torch.from_numpy(F[i, :train_size, :].transpose()).float()
 
