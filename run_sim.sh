@@ -1,4 +1,5 @@
-for i in {0..99}
+for i in {0..19}
 do
-    python st_simulation.py data/st_sim/csv/s$i.csv output/st_sim/preds$i.npy
+    # rm model/stationary/model$i.pt
+    python st_simulation.py data/stationary/s$i.csv output/stationary/out$i.pickle model/stationary/model$i.pt $i
 done

@@ -3,7 +3,6 @@ from utils import *
 import pandas as pd
 import torch.nn as nn
 from tqdm import tqdm
-from model import Model1, Model2
 from torch.utils.data import DataLoader
 
 
@@ -22,6 +21,37 @@ def generate_data(X, p):
     
     return torch.stack(input), torch.stack(target), torch.stack(input_indices), target_indices
 
+class Model(nn.Module):
+    def __init__(self, N, T):
+        
+        super(Model, self).__init__()
+
+        self.N = N
+        self.T = T
+
+        # Defining some parameters        
+        w = torch.empty(N * N, T)       
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=1.0))
+
+    def forward(self, x, x_i, g):
+        """
+        x : [b, N, p]
+        x_i : [b, p]
+        """
+    
+        # Shape function
+        F = torch.matmul(g, self.weights ** 2) # [N ** 2, T]
+        
+        wg = F.t().reshape(-1, self.N, self.N) #[T, N, N]
+        # f = torch.softmax(-wg, -1) # [T, N, N]
+        f = wg
+        f_ = f[x_i]
+        x_ = torch.swapaxes(x, 1, 2).unsqueeze(-1)
+
+        Z = torch.matmul(f_, x_)
+        Z = Z.sum((1, -1))
+        return Z, F
+
 def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
     
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
@@ -37,7 +67,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
-    model = Model1(N, T)
+    model = Model(N, T)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -98,7 +128,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
 
     input, target, input_indices, _ = generate_data(X, p)
     
-    model = Model1(N, T)
+    model = Model(N, T)
     optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()

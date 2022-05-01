@@ -41,13 +41,21 @@ def basis_function(d, shape):
     sorted_d = np.sort(d)
     g = []
     for i in range(m):
-        if shape == 'monotone_inc':
+        if shape == 'monotone_inc': #2
             a = (d >= sorted_d[i]).astype('float')
             b = int(sorted_d[i] <= 0.0) 
             g.append(a - b)
-        elif shape == 'concave_inc':
+        elif shape == 'concave_inc': #7
             a = (d <= sorted_d[i]).astype('float')
             gx = np.multiply(d-sorted_d[i], a) + sorted_d[i] * int(sorted_d[i] >= 0.0) 
+            g.append(gx)
+        elif shape == 'monotone_dec': #3
+            a = (d <= sorted_d[i]).astype('float')
+            b = 0 # int(sorted_d[i] > 0.0) 
+            g.append(a - b)
+        elif shape == 'convex_dec': #6
+            a = (d <= sorted_d[i]).astype('float')
+            gx = 0 # np.multiply(sorted_d[i]-d, a) - sorted_d[i] * int(sorted_d[i] >= 0.0) 
             g.append(gx)
 
     return np.stack(g, axis=1)

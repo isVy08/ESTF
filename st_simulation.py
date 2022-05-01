@@ -1,6 +1,5 @@
-import os, torch, sys
+import os, sys
 from utils import *
-import numpy as np
 import pandas as pd
 import torch.nn as nn
 from tqdm import tqdm
@@ -25,14 +24,15 @@ class Model(nn.Module):
 
         # Defining some parameters
         w = torch.empty(input_size * input_size, 1)
-        self.weights = nn.Parameter(nn.init.xavier_normal_(w))
+        self.weights = nn.Parameter(nn.init.xavier_uniform_(w))
     def forward(self, x):
         self.g.requires_grad = False
         w = torch.matmul(self.g, self.weights ** 2) 
         # w = torch.matmul(g, weights ** 2) 
         
         f = w.reshape(self.N, self.N) # add exponential term
-        ef = torch.softmax(-f, -1)
+        # ef = torch.softmax(-f, -1)
+        ef = f
         z = ef @ x
         z = z.sum(-1)
         return z, w
@@ -40,7 +40,7 @@ class Model(nn.Module):
 
 
 
-def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
+def train(X, d, p, batch_size, epochs, lr, model_path, F, shape, device='cpu'):
     
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
     
@@ -52,12 +52,16 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
     
     model = Model(N, g)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    if os.path.isfile(model_path):
+        load_model(model, optimizer, model_path, device)
+    else:
+        model.to(device)
+    
     model.to(device)
 
     loss_fn = nn.MSELoss()
     prev_loss = 1e+10
-    F = np.log(d+1)
-    F = torch.from_numpy(F)
+
 
     # Generate data 
     input, target = generate_data(X, p)
@@ -87,6 +91,7 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             prev_loss = val_loss
 
+
 def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
     g = basis_function(d, shape)
@@ -112,12 +117,10 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     print(loss.item())
     
     out = out.detach().numpy()
-    if '.pickle' in forecast_path:
-        F = F.detach().numpy()
-        write_pickle([X, out, F], forecast_path) 
-    else:
-        np.save(forecast_path, out)   
-
+    
+    F = F.detach().numpy()
+    write_pickle([X, out, F], forecast_path) 
+    
     
 
 
@@ -127,14 +130,20 @@ if __name__ == "__main__":
     data_path = sys.argv[1]
     forecast_path = sys.argv[2]
     model_path = sys.argv[3]
+    i = int(sys.argv[4])
+
+    # data_path = 'data/stationary/s0.csv'
+    # forecast_path = None
+    # model_path = 'data/stationary/test.pt'
+    # i = 0
 
     df = pd.read_csv(data_path)
     X = df.iloc[:, 1:].to_numpy()
 
     train_size = 300
     batch_size = 50
-    epochs = 100
-    lr = 0.01
+    epochs = 1000
+    lr = 0.001
     
     p = 1
 
@@ -144,10 +153,14 @@ if __name__ == "__main__":
     X_train = X[:, :train_size]  
     X_train = torch.from_numpy(X_train).float()
 
-    shape = 'monotone_inc'
+    F = np.load('data/stationary/F.npy')
+    F = torch.from_numpy(F[i, :].transpose()).float()
+
+
+    shape = 'convex_dec'
 
     
-    train(X_train, d, p, batch_size, epochs, lr, model_path, shape, device='cpu')
+    train(X_train, d, p, batch_size, epochs, lr, model_path, F, shape, device='cpu')
     forecast(X, d, p, model_path, forecast_path, shape)
 
 
