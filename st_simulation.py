@@ -24,11 +24,10 @@ class Model(nn.Module):
 
         # Defining some parameters
         w = torch.empty(input_size * input_size, 1)
-        self.weights = nn.Parameter(nn.init.xavier_uniform_(w))
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w))
     def forward(self, x):
         self.g.requires_grad = False
         w = torch.matmul(self.g, self.weights ** 2) 
-        # w = torch.matmul(g, weights ** 2) 
         
         f = w.reshape(self.N, self.N) # add exponential term
         # ef = torch.softmax(-f, -1)
@@ -90,6 +89,8 @@ def train(X, d, p, batch_size, epochs, lr, model_path, F, shape, device='cpu'):
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             prev_loss = val_loss
+        else:
+            break
 
 
 def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
@@ -130,7 +131,8 @@ if __name__ == "__main__":
     data_path = sys.argv[1]
     forecast_path = sys.argv[2]
     model_path = sys.argv[3]
-    i = int(sys.argv[4])
+    F_path = sys.argv[4]
+    i = int(sys.argv[5])
 
     # data_path = 'data/stationary/s0.csv'
     # forecast_path = None
@@ -142,7 +144,7 @@ if __name__ == "__main__":
 
     train_size = 300
     batch_size = 50
-    epochs = 1000
+    epochs = 300
     lr = 0.001
     
     p = 1
@@ -153,13 +155,14 @@ if __name__ == "__main__":
     X_train = X[:, :train_size]  
     X_train = torch.from_numpy(X_train).float()
 
-    F = np.load('data/stationary/F.npy')
+    F = np.load(F_path)
     F = torch.from_numpy(F[i, :].transpose()).float()
 
+    if 'log' in F_path:
+        shape = 'convex_dec'
+    else:
+        shape = 'monotone_dec'
 
-    shape = 'convex_dec'
-
-    
     train(X_train, d, p, batch_size, epochs, lr, model_path, F, shape, device='cpu')
     forecast(X, d, p, model_path, forecast_path, shape)
 

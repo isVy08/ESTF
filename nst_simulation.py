@@ -38,7 +38,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
 
     #  Intialize model
     model = Model1(N, T)
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -99,7 +99,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
     input, target, input_indices, _ = generate_data(X, p)
     
     model = Model1(N, T)
-    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
 
@@ -159,7 +159,8 @@ if __name__ == "__main__":
     data_path = sys.argv[1]
     forecast_path = sys.argv[2]
     model_path = sys.argv[3]
-    i = int(sys.argv[4])
+    F_path = sys.argv[4]
+    i = int(sys.argv[5])
 
     # data_path = 'data/nst_sim/csv/s0.csv'
     # model_path = 'model/test.pt'
@@ -176,18 +177,19 @@ if __name__ == "__main__":
     
 
     train_size = 300
-    batch_size = 300
+    batch_size = 50
     epochs = 1000
-    lr = 0.01
+    lr = 0.001
     p = 1
 
-    
-    shape = 'convex_dec'
 
-    F = np.load('data/non_stationary/F.npy')
+
+    F = np.load(F_path)
     F = torch.from_numpy(F[i, :train_size, :].transpose()).float()
 
 
+    shape = 'monotone_dec'
+    
     X_train = X[:, :train_size]
 
 

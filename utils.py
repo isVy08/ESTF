@@ -55,7 +55,7 @@ def basis_function(d, shape):
             g.append(a - b)
         elif shape == 'convex_dec': #6
             a = (d <= sorted_d[i]).astype('float')
-            gx = 0 # np.multiply(sorted_d[i]-d, a) - sorted_d[i] * int(sorted_d[i] >= 0.0) 
+            gx = np.multiply(sorted_d[i]-d, a) - sorted_d[i] * 0 # int(sorted_d[i] >= 0.0) 
             g.append(gx)
 
     return np.stack(g, axis=1)
