@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
     sample_path = 'data/air/sample.pickle'
     data_path = 'data/air/data.npy'
-    model_path = 'model/air.pt'
+    model_path = 'model/air_dec.pt'
     
 
     train_size = 300
@@ -173,12 +173,12 @@ if __name__ == "__main__":
          
     X_train = X[:, :train_size]
 
-    shape = 'monotone_inc'
+    shape = 'monotone_dec'
 
     if sys.argv[1] == 'train':
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast_path = 'output/air.pickle'
+        forecast_path = 'output/air_dec.pickle'
         until = 100
         epochs = 100
         h = 1

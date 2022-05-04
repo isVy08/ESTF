@@ -38,7 +38,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
 
     #  Intialize model
     model = Model1(N, T)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -99,7 +99,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
     input, target, input_indices, _ = generate_data(X, p)
     
     model = Model1(N, T)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
 
@@ -178,7 +178,7 @@ if __name__ == "__main__":
 
     train_size = 300
     batch_size = 50
-    epochs = 1000
+    epochs = 200
     lr = 0.001
     p = 1
 
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     F = torch.from_numpy(F[i, :train_size, :].transpose()).float()
 
 
-    shape = 'monotone_dec'
+    shape = 'convex_dec'
     
     X_train = X[:, :train_size]
 

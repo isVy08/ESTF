@@ -11,7 +11,7 @@ class Model1(nn.Module):
 
         # Defining some parameters        
         w = torch.empty(N * N, T)       
-        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=0.02))
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w)) # nst sim: 0.008
 
     def forward(self, x, x_i, g):
         """
@@ -23,7 +23,7 @@ class Model1(nn.Module):
         F = torch.matmul(g, self.weights ** 2) # [N ** 2, T]
         
         f = F.t().reshape(-1, self.N, self.N) #[T, N, N]
-        # f = torch.softmax(f, -1) # [T, N, N] - wg or wg?
+        f = torch.softmax(f, -1) # [T, N, N], comment this out for nst sim
         f_ = f[x_i]
         x_ = torch.swapaxes(x, 1, 2).unsqueeze(-1)
 
