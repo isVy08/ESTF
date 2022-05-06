@@ -3,7 +3,7 @@ from utils import *
 import pandas as pd
 import torch.nn as nn
 from tqdm import tqdm
-from model import Model1, Model2
+from model import Model
 from torch.utils.data import DataLoader
 
 
@@ -37,7 +37,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
-    model = Model1(N, T)
+    model = Model(N, T)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -73,9 +73,8 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             prev_loss = val_loss
-        elif val_loss > prev_loss:
+        else:
             break
-
 
 def update(X_new, p, g, epochs, model, optimizer, loss_fn):
     for _ in tqdm(range(epochs)):
@@ -98,7 +97,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
 
     input, target, input_indices, _ = generate_data(X, p)
     
-    model = Model1(N, T)
+    model = Model(N, T)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
@@ -162,27 +161,20 @@ if __name__ == "__main__":
     F_path = sys.argv[4]
     i = int(sys.argv[5])
 
-    # data_path = 'data/nst_sim/csv/s0.csv'
-    # model_path = 'model/test.pt'
-    # forecast_path = 'output/test.pickle'
-    # i = 0
-
-
-
     df = pd.read_csv(data_path)
     X = df.iloc[:, 1:].to_numpy()
 
     X = torch.from_numpy(X).float()
     _, d = load_pickle(sample_path)
+    # idx = np.argwhere(d > 150)
+    # d[idx] = 150
     
 
-    train_size = 300
+    train_size = 100
     batch_size = 50
-    epochs = 200
-    lr = 0.001
+    epochs = 100
+    lr = 1e-3
     p = 1
-
-
 
     F = np.load(F_path)
     F = torch.from_numpy(F[i, :train_size, :].transpose()).float()
@@ -193,9 +185,8 @@ if __name__ == "__main__":
     X_train = X[:, :train_size]
 
 
-        
     train(X_train, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu')
-    until = 200
+    until = 100
     forecast(X, d, p, train_size, lr, until, 100, model_path, forecast_path, shape, device='cpu')
 
 

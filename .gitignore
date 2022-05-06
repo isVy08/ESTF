@@ -1,9 +1,12 @@
 .DS_Store
-data/
-model/
-output/
-viz
+data/*
+model/*
+output/*
+viz*
 r-script.ipynb
 __pycache__
 .ipynb_checkpoints
-DCRNN/
+DC-RNN/
+ConvLSTM
+FC-GAGA
+GMAN

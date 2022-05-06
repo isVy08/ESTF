@@ -57,6 +57,8 @@ def basis_function(d, shape):
             a = (d <= sorted_d[i]).astype('float')
             gx = np.multiply(sorted_d[i]-d, a) - sorted_d[i] * 0 # int(sorted_d[i] >= 0.0) 
             g.append(gx)
+        else:
+          raise ValueError("Unknown shape!")
 
     return np.stack(g, axis=1)
 
