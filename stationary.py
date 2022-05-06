@@ -24,7 +24,7 @@ class Model(nn.Module):
 
         # Defining some parameters
         w = torch.empty(input_size * input_size, 1)
-        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=0.1))
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=0.015))
     def forward(self, x):
         self.g.requires_grad = False
         w = torch.matmul(self.g, self.weights ** 2) 
@@ -134,7 +134,7 @@ if __name__ == "__main__":
     X = df.iloc[:, 1:].to_numpy()
 
     train_size = 300
-    batch_size = 50
+    batch_size = 300
     epochs = 300
     lr = 0.001
     

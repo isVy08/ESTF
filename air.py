@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import torch.nn as nn
 from tqdm import tqdm
-from model import Model1, Model2
+from model import Model
 from torch.utils.data import DataLoader
 
 
@@ -38,8 +38,8 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
-    model = Model1(N, T)
-    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
+    model = Model(N, T, 1.0)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -94,8 +94,8 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
 
     input, target, input_indices, _ = generate_data(X, p)
     
-    model = Model1(N, T)
-    optimizer = torch.optim.RMSprop(model.parameters(), lr=lr)
+    model = Model(N, T, 1.0)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
 
@@ -155,13 +155,13 @@ if __name__ == "__main__":
 
     sample_path = 'data/air/sample.pickle'
     data_path = 'data/air/data.npy'
-    model_path = 'model/air_dec.pt'
+    model_path = 'model/air.pt'
     
 
     train_size = 300
     batch_size = 300
     epochs = 1000
-    lr = 0.01
+    lr = 0.001
     
     p = 1
 
@@ -178,7 +178,7 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast_path = 'output/air_dec.pickle'
+        forecast_path = 'output/air.pickle'
         until = 100
         epochs = 100
         h = 1
