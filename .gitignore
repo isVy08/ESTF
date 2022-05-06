@@ -3,7 +3,6 @@ data/*
 model/*
 output/*
 viz*
-r-script.ipynb
 __pycache__
 .ipynb_checkpoints
 DC-RNN/
