@@ -37,7 +37,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
-    model = Model(N, T)
+    model = Model(N, T, 0.015)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -74,8 +74,6 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             prev_loss = train_loss
 
-            
-
 
 def update(X_new, p, g, epochs, model, optimizer, loss_fn):
     for _ in tqdm(range(epochs)):
@@ -98,7 +96,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
 
     input, target, input_indices, _ = generate_data(X, p)
     
-    model = Model(N, T)
+    model = Model(N, T, 0.01)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
@@ -174,7 +172,7 @@ if __name__ == "__main__":
     train_size = 300
     batch_size = 50
     epochs = 100
-    lr = 1e-3
+    lr = 1e-2
     p = 1
 
     F = np.load(F_path)

@@ -134,7 +134,7 @@ if __name__ == "__main__":
     X = df.iloc[:, 1:].to_numpy()
 
     train_size = 300
-    batch_size = 300
+    batch_size = 50
     epochs = 300
     lr = 0.001
     

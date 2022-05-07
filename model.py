@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class Model(nn.Module):
-    def __init__(self, N, T, gain=0.0075):
+    def __init__(self, N, T, gain):
         
         super(Model, self).__init__()
 
@@ -11,7 +11,7 @@ class Model(nn.Module):
 
         # Defining some parameters        
         w = torch.empty(N * N, T)       
-        self.weights = nn.Parameter(nn.init.xavier_uniform_(w, gain=gain)) # nst sim: 0.008
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=gain)) # nst sim: 0.008
 
     def forward(self, x, x_i, g):
         """
