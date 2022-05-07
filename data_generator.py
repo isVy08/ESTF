@@ -1,8 +1,7 @@
 import sys
 import numpy as np
 import pandas as pd
-from main import scale
-from utils import load_pickle
+from utils import *
 """
 Module to transform data to be compatible with baselines
 """

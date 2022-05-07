@@ -5,7 +5,11 @@ output/*
 viz*
 __pycache__
 .ipynb_checkpoints
-DC-RNN/
-ConvLSTM
-FC-GAGA
-GMAN
+DC-RNN/data/*
+DC-RNN/models/*
+ConvLSTM/data/*
+ConvLSTM/model/*
+FC-GAGA/data/*
+FC-GAGA/model/*
+GMAN/data/*
+GMAN/model/*
