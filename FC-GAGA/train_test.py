@@ -29,7 +29,7 @@ if dataname == 'mine':
     hyperparams_dict["horizon"] = 5
     hyperparams_dict["history_length"] = 5
 elif dataname in ('sim', 'nst_sim'):
-    hyperparams_dict["epochs"] = 100
+    hyperparams_dict["epochs"] = 30
     hyperparams_dict["steps_per_epoch"] = 10
     hyperparams_dict["horizon"] = 1
     hyperparams_dict["history_length"] = 1

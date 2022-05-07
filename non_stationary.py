@@ -69,12 +69,13 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
         val_loss = val_losses / len(loader)
         msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
         print(msg)
-        if val_loss < prev_loss:
+        if train_loss < prev_loss:
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
-            prev_loss = val_loss
-        else:
-            break
+            prev_loss = train_loss
+
+            
+
 
 def update(X_new, p, g, epochs, model, optimizer, loss_fn):
     for _ in tqdm(range(epochs)):
@@ -170,7 +171,7 @@ if __name__ == "__main__":
     # d[idx] = 150
     
 
-    train_size = 100
+    train_size = 300
     batch_size = 50
     epochs = 100
     lr = 1e-3
@@ -186,7 +187,7 @@ if __name__ == "__main__":
 
 
     train(X_train, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu')
-    until = 100
+    until = 200
     forecast(X, d, p, train_size, lr, until, 100, model_path, forecast_path, shape, device='cpu')
 
 
