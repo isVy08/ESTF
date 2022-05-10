@@ -37,7 +37,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, F, device='cpu'):
     loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
 
     #  Intialize model
-    model = Model(N, T, 0.02)
+    model = Model(N, T, 0.01)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
