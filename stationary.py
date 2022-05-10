@@ -1,9 +1,11 @@
-import os, sys
+import os, sys, math
 from utils import *
 import pandas as pd
 import torch.nn as nn
 from tqdm import tqdm
 from torch.utils.data import DataLoader
+
+
 
 def generate_data(X, p):
     T = X.size(1)
@@ -16,19 +18,18 @@ def generate_data(X, p):
 
 
 class Model(nn.Module):
-    def __init__(self, input_size, g):
+    def __init__(self, input_size):
         super(Model, self).__init__()
 
-        self.g = g
         self.N = input_size
 
         # Defining some parameters
         w = torch.empty(input_size * input_size, 1)
-        self.weights = nn.Parameter(nn.init.xavier_normal_(w, gain=0.015))
-    def forward(self, x):
-        self.g.requires_grad = False
-        w = torch.matmul(self.g, self.weights ** 2) 
-        
+        self.weights = nn.Parameter(nn.init.xavier_normal_(w)) # 0.015
+
+    def forward(self, x, g):
+        g.requires_grad = False
+        w = torch.matmul(g, self.weights ** 2)
         f = w.reshape(self.N, self.N) 
         f = torch.softmax(f, -1) # remove minus sign if decreasing
         z = f @ x
@@ -36,7 +37,7 @@ class Model(nn.Module):
         return z, w
 
 
-
+loss_fn = nn.MSELoss()
 
 def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
     
@@ -48,7 +49,7 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
     #  Intialize model
     N, T = X.shape   
     
-    model = Model(N, g)
+    model = Model(N)
     optimizer = torch.optim.SGD(model.parameters(), lr=lr)
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
@@ -57,39 +58,46 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
     
     model.to(device)
 
-    loss_fn = nn.MSELoss()
-    prev_loss = 1e+10
+    tloss = 1e+10
+    vloss = 1e+10
 
 
     # Generate data 
     input, target = generate_data(X, p)
-    loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
+    loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=True)
 
     for epoch in range(1, epochs + 1):
         train_losses = 0
+        val_losses = 0
         for idx in tqdm(loader): 
             y = target[idx,]
-            dx = input[idx, ]
-            pred, F_hat = model(dx)
+            x = input[idx, ]
+            pred, F_hat = model(x, g)
             pred = pred.squeeze(-1)
+            F_hat = F_hat.squeeze(-1)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
             loss.backward()
                         
             optimizer.step()
             train_losses += loss.item()
+            val_losses += loss_fn(F_hat, F)
             
 
         train_loss = train_losses / len(loader)
-        msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}"
-        print(msg)
-        if train_loss < prev_loss:
+        val_loss = val_losses / len(loader)
+        msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
+        print(msg)        
+        
+        
+        if val_loss < 1.0 or math.isnan(train_loss):
+            break
+        elif train_loss < tloss and val_loss < vloss:
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
-            prev_loss = train_loss
-        elif train_loss > prev_loss:
-            break
-
+            tloss = train_loss
+            vloss = val_loss
+        
 
 def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
@@ -99,15 +107,16 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     #  Intialize model
     N, T = X.shape 
     
-    model = Model(N, g)
+    model = Model(N)
     load_model(model, None, model_path, device)
 
     Xts = torch.from_numpy(X).float()
     input, target = generate_data(Xts, p)
-    loss_fn = nn.MSELoss()
+    
     
     print('Predicting ...')
-    pred, F = model(input)
+    pred, F = model(input, g)
+    # F = torch.matmul(g, model.weights ** 2)
     pred = pred.squeeze(-1)
     loss = loss_fn(pred, target)
  
@@ -129,19 +138,20 @@ if __name__ == "__main__":
     data_path = sys.argv[1]
     forecast_path = sys.argv[2]
     model_path = sys.argv[3]
+
+    
     
     df = pd.read_csv(data_path)
     X = df.iloc[:, 1:].to_numpy()
 
     train_size = 300
     batch_size = 50
-    epochs = 300
-    lr = 0.001
+    epochs = 50
+    lr = 0.1
     
     p = 1
 
     _, d = load_pickle(sample_path)
-
             
     X_train = X[:, :train_size]  
     X_train = torch.from_numpy(X_train).float()
