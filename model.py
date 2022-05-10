@@ -30,4 +30,3 @@ class Model(nn.Module):
         Z = torch.matmul(f_, x_)
         Z = Z.sum((1, -1))
         return Z, F
-
