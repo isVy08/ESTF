@@ -13,6 +13,7 @@ def main():
     batch_size = int(sys.argv[3])
     
     epochs = int(sys.argv[4])
+    lr = float(sys.argv[5])
     row, col = 10, 3
 
     x = {}
@@ -45,7 +46,7 @@ def main():
                    activation='sigmoid',
                    padding='same', data_format='channels_last'))
 
-    seq.compile(loss='mean_squared_error', optimizer='adadelta')
+    seq.compile(loss='mean_squared_error', optimizer=tf.keras.optimizers.Adadelta(learning_rate=lr))
 
     # Train the network
     name = dir.split('/')[1]

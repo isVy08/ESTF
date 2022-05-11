@@ -69,6 +69,9 @@ def generate_train_val_test(args):
     elif 'sim' in args.output_dir:
         num_train = 300
         horizon = 1
+    elif 'air' in args.output_dir:
+        num_train = 200
+        horizon = 1
     
     x_offsets = np.sort(
         # np.concatenate(([-week_size + 1, -day_size + 1], np.arange(-11, 1, 1)))

@@ -7,7 +7,7 @@ Module to transform data to be compatible with baselines
 """
 
 # Load location indices
-ids, d = load_pickle('data/sample.pickle')
+ids, d = load_pickle('data/sample.pickle') # adjust this for air data
 # data_dir = './data/st_sim/'
 data_dir = sys.argv[1]
 N = len(ids)

@@ -19,10 +19,10 @@ def learn_embeddings(walks, dimensions, output_file):
         workers = 8, epochs = iter)
     model.wv.save_word2vec_format(output_file)
 	
-def generate_adj_mx(output_file):
+def generate_adj_mx(output_file, sample_file):
     import pickle
-    file = open('../data/sample.pickle', 'rb')
-    _, d, _ = pickle.load(file)
+    file = open(sample_file, 'rb')
+    _, d = pickle.load(file)
     file.close()
 
     file = open(output_file, 'w+')
@@ -49,9 +49,10 @@ if __name__ == "__main__":
     iter = 1000
     Adj_file = sys.argv[1]
     SE_file = sys.argv[2]
+    sample_file = '../data/air/sample.pickle'
 
     # Generate adjancency matrix
-    generate_adj_mx(Adj_file)
+    generate_adj_mx(Adj_file, sample_file)
 
     nx_G = read_graph(Adj_file)
     G = node2vec.Graph(nx_G, is_directed, p, q)

@@ -33,7 +33,7 @@ parser.add_argument('--val_ratio', type=float, default=0.1,
                     help='validation set [default : 0.1]')
 parser.add_argument('--test_ratio', type=float, default=0.2,
                     help='testing set [default : 0.2]')
-parser.add_argument('--batch_size', type=int, default=60,
+parser.add_argument('--batch_size', type=int, default=50,
                     help='batch size')
 parser.add_argument('--max_epoch', type=int, default=1,
                     help='epoch to run')

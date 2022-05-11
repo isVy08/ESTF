@@ -158,10 +158,10 @@ if __name__ == "__main__":
     model_path = 'model/air.pt'
     
 
-    train_size = 300
-    batch_size = 300
+    train_size = 200
+    batch_size = 50
     epochs = 1000
-    lr = 0.001
+    lr = 0.01
     
     p = 1
 
@@ -179,7 +179,7 @@ if __name__ == "__main__":
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
         forecast_path = 'output/air.pickle'
-        until = 100
+        until = 156
         epochs = 100
         h = 1
         forecast(X, d, p, train_size, lr, until, epochs, h, model_path, forecast_path, shape, device='cpu')
