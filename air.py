@@ -35,10 +35,11 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     # Generate data 
     # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T], alphas: [T]
     input, target, input_indices, _ = generate_data(X, p)
-    loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
+    indices = list(range(T-p))
+    loader = DataLoader(indices, batch_size=batch_size, shuffle=True)
 
     #  Intialize model
-    model = Model(N, T, 1.0)
+    model = Model(N, T, 1)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -48,7 +49,6 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
 
     loss_fn = nn.MSELoss()
     prev_loss = 1e+10
-
     for epoch in range(1, epochs + 1):
         train_losses = 0
         for idx in tqdm(loader): 
@@ -63,7 +63,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             
             optimizer.step()
             train_losses += loss.item()
-
+        
         train_loss = train_losses / len(loader)
         msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}"
         print(msg)
@@ -101,13 +101,13 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
 
     
     # Dynamic forecasting
-    preds, F = model(input[:T-p, ], input_indices[:T-p, ], g) # starting x_5
+    preds, F = model(input[:T-p, ], input_indices[:T-p, ], g) 
     complete = False
 
     while not complete:
         with torch.no_grad():   
             model.eval()         
-            print(f'Forecasting the next {train_size} steps ...')
+            print(f'Forecasting the next {until} steps ...')
             t = 0
             while t < (train_size - p) and not complete:
                 i = t + T
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     
 
     train_size = 200
-    batch_size = 50
+    batch_size = 10
     epochs = 1000
     lr = 0.01
     
@@ -179,7 +179,7 @@ if __name__ == "__main__":
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
         forecast_path = 'output/air.pickle'
-        until = 156
+        until = 165
         epochs = 100
         h = 1
         forecast(X, d, p, train_size, lr, until, epochs, h, model_path, forecast_path, shape, device='cpu')

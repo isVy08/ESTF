@@ -24,7 +24,7 @@ class Dataset(object):
             gdd.download_file_from_google_drive(file_id='1pAGRfzMx6K9WWsfDcD1NMbIif0T0saFC', dest_path=f"{path}/metr-la.h5", unzip=False)
         elif self.name == 'pems-bay':
             gdd.download_file_from_google_drive(file_id='1wD-mHlqAb2mtHOe_68fZvDh1LpDegMMq', dest_path=f"{path}/pems-bay.h5", unzip=False)
-        elif self.name in ('stvar', 'mine', 'sim', 'nst_sim'):
+        elif self.name in ('air', 'mine', 'sim', 'nst_sim'):
             pass
         else:
             raise Exception(f"unknown dataset: {self.name}")

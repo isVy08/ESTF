@@ -1,0 +1,51 @@
+time_slot=5, num_his=1, num_pred=1, L=1, K=8, d=8, train_size=200, val_ratio=0.1, test_ratio=0.2, batch_size=50, max_epoch=1000, patience=10, learning_rate=0.001, decay_epoch=10, traffic_file='../data/air/data.h5', SE_file='data/air/SE.txt', model_file='model/air.pt', log_file='logs/air_train', output_file='data/air/preds.npz'
+loading data...
+fullX: torch.Size([364, 1, 30])		 fullY: torch.Size([364, 2, 1])
+trainX: torch.Size([200, 1, 30])		 trainY: torch.Size([200, 1, 30])
+valX:   torch.Size([92, 1, 30])		valY:   torch.Size([92, 1, 30])
+testX:   torch.Size([73, 1, 30])		testY:   torch.Size([73, 1, 30])
+trainTE:   torch.Size([200, 2, 1])		valTE:   torch.Size([92, 2, 1])
+testTE:   torch.Size([73, 2, 1])		fullTE:   torch.Size([364, 1, 30])
+data loaded!
+compiling model...
+trainable parameters: 209,923
+**** training model ****
+2022-05-11 12:13:13 | epoch: 0001/1000, training time: 1.9s, inference time: 0.5s
+train loss: 161.7694, val_loss: 380.4327
+val loss decrease from inf to 380.4327, saving model to model/air.pt
+2022-05-11 12:13:15 | epoch: 0002/1000, training time: 1.5s, inference time: 0.2s
+train loss: 155.5128, val_loss: 373.8711
+val loss decrease from 380.4327 to 373.8711, saving model to model/air.pt
+2022-05-11 12:13:16 | epoch: 0003/1000, training time: 1.5s, inference time: 0.2s
+train loss: 153.8994, val_loss: 370.2323
+val loss decrease from 373.8711 to 370.2323, saving model to model/air.pt
+2022-05-11 12:13:18 | epoch: 0004/1000, training time: 1.6s, inference time: 0.5s
+train loss: 153.0825, val_loss: 377.6548
+2022-05-11 12:13:22 | epoch: 0005/1000, training time: 3.3s, inference time: 0.2s
+train loss: 152.5179, val_loss: 385.9195
+2022-05-11 12:13:24 | epoch: 0006/1000, training time: 1.4s, inference time: 0.2s
+train loss: 152.0640, val_loss: 387.8026
+2022-05-11 12:13:26 | epoch: 0007/1000, training time: 1.6s, inference time: 0.2s
+train loss: 151.8723, val_loss: 389.8386
+2022-05-11 12:13:27 | epoch: 0008/1000, training time: 1.6s, inference time: 0.3s
+train loss: 151.4915, val_loss: 389.2754
+2022-05-11 12:13:29 | epoch: 0009/1000, training time: 1.5s, inference time: 0.2s
+train loss: 151.0178, val_loss: 389.8828
+2022-05-11 12:13:31 | epoch: 0010/1000, training time: 1.4s, inference time: 0.2s
+train loss: 150.7691, val_loss: 395.8286
+2022-05-11 12:13:33 | epoch: 0011/1000, training time: 1.8s, inference time: 0.7s
+train loss: 150.2790, val_loss: 391.3379
+2022-05-11 12:13:37 | epoch: 0012/1000, training time: 3.4s, inference time: 0.5s
+train loss: 149.9120, val_loss: 384.1889
+2022-05-11 12:13:40 | epoch: 0013/1000, training time: 2.1s, inference time: 0.5s
+train loss: 149.6637, val_loss: 388.9330
+early stop at epoch: 0013
+Training is completed, and model has been stored as model/air.pt
+**** testing model ****
+loading model from model/air.pt
+model restored!
+evaluating...
+test             11.06		16.06		nan%
+performance in each prediction step
+step: 01         11.06		16.06		nan%
+average:         11.06		16.06		nan%

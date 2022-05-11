@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os, sys
 import numpy as np
+import tensorflow as tf
 from keras.models import Sequential
 from keras.layers.convolutional import Conv3D
 from keras.layers.convolutional_recurrent import ConvLSTM2D
@@ -61,7 +62,7 @@ def main():
     # seq = tf.keras.models.load_model(model_path)
     predictions = seq.predict(x['full'], verbose=1, batch_size=batch_size)
     np.savez_compressed(
-    os.path.join(sys.argv[5]),
+    os.path.join(sys.argv[6]),
     input=x["full"].squeeze(-1),
     truth=y["full"].squeeze(-1),
     prediction=predictions.squeeze(-1)

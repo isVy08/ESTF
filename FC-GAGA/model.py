@@ -21,7 +21,7 @@ hyperparams_defaults = {
     "init_learning_rate": 1e-3,
     "decay_steps": 3, 
     "decay_rate": 0.5,
-    "batch_size": 60,
+    "batch_size": 50,
     "weight_decay": 1e-5,
     "node_id_dim": 64,
     "num_nodes": 30, # 207 | 325
