@@ -6,6 +6,15 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 
 
+F_path = sys.argv[4]
+i = int(sys.argv[5])
+F = np.load(F_path)
+F = torch.from_numpy(F[i, :].transpose()).float()
+
+
+# specifying threshold to filter locations
+threshold = 100
+
 
 def generate_data(X, p):
     T = X.size(1)
@@ -16,22 +25,28 @@ def generate_data(X, p):
         input.append(X[:, i-p:i])
     return torch.stack(input), torch.stack(target)
 
-
 class Model(nn.Module):
     def __init__(self, input_size):
         super(Model, self).__init__()
 
         self.N = input_size
 
-        # Defining some parameters
-        w = torch.empty(input_size * input_size, 1)
-        self.weights = nn.Parameter(nn.init.xavier_normal_(w)) # 0.015
+        # Define parameters
+        weights = torch.empty(input_size * input_size, 1)
+        self.weights = nn.Parameter(nn.init.xavier_normal_(weights)) # 0.015
 
-    def forward(self, x, g):
+    def forward(self, x, g, idx):
+        
         g.requires_grad = False
+        
         f = torch.matmul(g, self.weights ** 2)
+        
+        # Filter locations
+        if idx is not None:
+            f[idx, ] = 0
+        
         w = f.reshape(self.N, self.N) 
-        w = torch.softmax(w, -1) # remove minus sign if decreasing
+        w = torch.softmax(w, -1) # add minus sign if increasing
         z = w @ x
         z = z.sum(-1)
         return z, f
@@ -45,12 +60,15 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
     
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
+
+    # filter locations
+    idx = np.argwhere(d <= threshold)[:, 0]
     
     #  Intialize model
     N, T = X.shape   
     
     model = Model(N)
-    optimizer = torch.optim.SGD(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     if os.path.isfile(model_path):
         load_model(model, optimizer, model_path, device)
     else:
@@ -72,7 +90,7 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
         for idx in tqdm(loader): 
             y = target[idx,]
             x = input[idx, ]
-            pred, F_hat = model(x, g)
+            pred, F_hat = model(x, g, idx)
             pred = pred.squeeze(-1)
             F_hat = F_hat.squeeze(-1)
             optimizer.zero_grad()
@@ -90,9 +108,10 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
         print(msg)        
         
         
-        if val_loss < 1.0 or math.isnan(train_loss):
+        if val_loss < 0.01:
             break
-        elif train_loss < tloss and val_loss < vloss:
+    
+        if train_loss < tloss:
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             tloss = train_loss
@@ -103,6 +122,7 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
     g = basis_function(d, shape)
     g = torch.from_numpy(g).float()
+    
     
     #  Intialize model
     N, T = X.shape 
@@ -115,8 +135,7 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     
     
     print('Predicting ...')
-    pred, F = model(input, g)
-    # F = torch.matmul(g, model.weights ** 2)
+    pred, F = model(input, g, None)
     pred = pred.squeeze(-1)
     loss = loss_fn(pred, target)
  
@@ -138,6 +157,7 @@ if __name__ == "__main__":
     data_path = sys.argv[1]
     forecast_path = sys.argv[2]
     model_path = sys.argv[3]
+    
 
     
     
@@ -146,13 +166,13 @@ if __name__ == "__main__":
 
     train_size = 300
     batch_size = 50
-    epochs = 50
-    lr = 0.1
+    epochs = 100
+    lr = 0.01
     
     p = 1
 
     _, d = load_pickle(sample_path)
-            
+                
     X_train = X[:, :train_size]  
     X_train = torch.from_numpy(X_train).float()
 
