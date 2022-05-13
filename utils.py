@@ -41,20 +41,18 @@ def get_quantiles(d, q):
   idx = [(np.abs(d - i)).argmin() for i in qr] # selected indices
   return qr, idx 
 
-
-
-
 def basis_function(d, shape, q = None):
     
     m = d.shape[0]
     if q is None:
+      # order statistics as usual
       sorted_d = np.sort(d)
     else:
+      # get quantile values
       qr, idx = get_quantiles(d, q)
       sorted_idx = np.sort(idx)
       sorted_d = np.zeros_like(d)
       sorted_d[sorted_idx] = qr
-
 
     g = []
     for i in range(m):
