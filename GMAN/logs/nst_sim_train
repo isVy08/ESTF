@@ -1,0 +1,69 @@
+time_slot=5, num_his=1, num_pred=1, L=1, K=8, d=8, train_size=300, val_ratio=0.1, test_ratio=0.2, batch_size=50, max_epoch=100, patience=10, learning_rate=0.001, decay_epoch=10, traffic_file='../data/non_stationary/h5/s30.h5', SE_file='data/nst_sim/SE.txt', model_file='model/nst_sim.pt', log_file='logs/nst_sim_train', output_file='data/nst_sim/output/preds30.npz'
+loading data...
+fullX: torch.Size([499, 1, 30])		 fullY: torch.Size([499, 2, 1])
+trainX: torch.Size([300, 1, 30])		 trainY: torch.Size([300, 1, 30])
+valX:   torch.Size([100, 1, 30])		valY:   torch.Size([100, 1, 30])
+testX:   torch.Size([100, 1, 30])		testY:   torch.Size([100, 1, 30])
+trainTE:   torch.Size([300, 2, 1])		valTE:   torch.Size([100, 2, 1])
+testTE:   torch.Size([100, 2, 1])		fullTE:   torch.Size([499, 1, 30])
+data loaded!
+compiling model...
+trainable parameters: 209,923
+**** training model ****
+2022-05-13 16:51:35 | epoch: 0001/100, training time: 5.3s, inference time: 0.5s
+train loss: 2.8683, val_loss: 4.0014
+val loss decrease from inf to 4.0014, saving model to model/nst_sim.pt
+2022-05-13 16:51:42 | epoch: 0002/100, training time: 5.8s, inference time: 0.5s
+train loss: 2.3964, val_loss: 3.8277
+val loss decrease from 4.0014 to 3.8277, saving model to model/nst_sim.pt
+2022-05-13 16:51:48 | epoch: 0003/100, training time: 6.0s, inference time: 0.6s
+train loss: 2.2061, val_loss: 3.6614
+val loss decrease from 3.8277 to 3.6614, saving model to model/nst_sim.pt
+2022-05-13 16:51:54 | epoch: 0004/100, training time: 5.9s, inference time: 0.4s
+train loss: 2.0803, val_loss: 3.3533
+val loss decrease from 3.6614 to 3.3533, saving model to model/nst_sim.pt
+2022-05-13 16:52:01 | epoch: 0005/100, training time: 6.0s, inference time: 0.5s
+train loss: 2.0162, val_loss: 2.7618
+val loss decrease from 3.3533 to 2.7618, saving model to model/nst_sim.pt
+2022-05-13 16:52:08 | epoch: 0006/100, training time: 6.3s, inference time: 0.5s
+train loss: 1.9137, val_loss: 2.3605
+val loss decrease from 2.7618 to 2.3605, saving model to model/nst_sim.pt
+2022-05-13 16:52:15 | epoch: 0007/100, training time: 6.7s, inference time: 0.6s
+train loss: 1.8428, val_loss: 2.1834
+val loss decrease from 2.3605 to 2.1834, saving model to model/nst_sim.pt
+2022-05-13 16:52:21 | epoch: 0008/100, training time: 5.6s, inference time: 0.7s
+train loss: 1.7618, val_loss: 2.0635
+val loss decrease from 2.1834 to 2.0635, saving model to model/nst_sim.pt
+2022-05-13 16:52:25 | epoch: 0009/100, training time: 3.7s, inference time: 0.2s
+train loss: 1.6855, val_loss: 2.0628
+val loss decrease from 2.0635 to 2.0628, saving model to model/nst_sim.pt
+2022-05-13 16:52:27 | epoch: 0010/100, training time: 1.6s, inference time: 0.2s
+train loss: 1.6164, val_loss: 2.2275
+2022-05-13 16:52:29 | epoch: 0011/100, training time: 1.6s, inference time: 0.2s
+train loss: 1.5687, val_loss: 2.3241
+2022-05-13 16:52:31 | epoch: 0012/100, training time: 1.7s, inference time: 0.2s
+train loss: 1.5040, val_loss: 2.1812
+2022-05-13 16:52:33 | epoch: 0013/100, training time: 1.9s, inference time: 0.2s
+train loss: 1.4643, val_loss: 2.3659
+2022-05-13 16:52:35 | epoch: 0014/100, training time: 2.3s, inference time: 0.3s
+train loss: 1.4201, val_loss: 2.5039
+2022-05-13 16:52:39 | epoch: 0015/100, training time: 2.8s, inference time: 0.3s
+train loss: 1.3987, val_loss: 2.3469
+2022-05-13 16:52:41 | epoch: 0016/100, training time: 2.5s, inference time: 0.2s
+train loss: 1.3913, val_loss: 2.4417
+2022-05-13 16:52:43 | epoch: 0017/100, training time: 1.7s, inference time: 0.2s
+train loss: 1.3204, val_loss: 2.2628
+2022-05-13 16:52:45 | epoch: 0018/100, training time: 1.6s, inference time: 0.2s
+train loss: 1.2923, val_loss: 2.5378
+2022-05-13 16:52:47 | epoch: 0019/100, training time: 1.6s, inference time: 0.2s
+train loss: 1.2879, val_loss: 2.3625
+early stop at epoch: 0019
+Training is completed, and model has been stored as model/nst_sim.pt
+**** testing model ****
+loading model from model/nst_sim.pt
+model restored!
+evaluating...
+test             1.02		1.26		51.20%
+performance in each prediction step
+step: 01         1.02		1.26		51.20%
+average:         1.02		1.26		51.20%

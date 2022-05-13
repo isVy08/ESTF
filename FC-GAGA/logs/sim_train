@@ -1,1 +1,1 @@
-Early stop test error model repeat=0;steps_per_epoch=10;num_stacks=3:, Avg MAE = 0.0
+Early stop test error model repeat=0;steps_per_epoch=10;num_stacks=3:, Avg MAE = 0.7369999885559082

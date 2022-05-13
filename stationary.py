@@ -11,8 +11,6 @@ i = int(sys.argv[5])
 F = np.load(F_path)
 F = torch.from_numpy(F[i, :].transpose()).float()
 
-
-# specifying threshold to filter locations
 threshold = 100
 
 
@@ -35,15 +33,11 @@ class Model(nn.Module):
         weights = torch.empty(input_size * input_size, 1)
         self.weights = nn.Parameter(nn.init.xavier_normal_(weights)) # 0.015
 
-    def forward(self, x, g, idx):
+    def forward(self, x, g):
         
         g.requires_grad = False
         
         f = torch.matmul(g, self.weights ** 2)
-        
-        # Filter locations
-        if idx is not None:
-            f[idx, ] = 0
         
         w = f.reshape(self.N, self.N) 
         w = torch.softmax(w, -1) # add minus sign if increasing
@@ -58,11 +52,12 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
     
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
     
-    g = basis_function(d, shape)
+    # q is q-quantile value, if q is None, compute order statistics instead
+    g = basis_function(d, shape, q = threshold) 
     g = torch.from_numpy(g).float()
 
     # filter locations
-    idx = np.argwhere(d <= threshold)[:, 0]
+    idx = np.argwhere(d >= threshold)[:, 0]
     
     #  Intialize model
     N, T = X.shape   
@@ -90,7 +85,7 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
         for idx in tqdm(loader): 
             y = target[idx,]
             x = input[idx, ]
-            pred, F_hat = model(x, g, idx)
+            pred, F_hat = model(x, g)
             pred = pred.squeeze(-1)
             F_hat = F_hat.squeeze(-1)
             optimizer.zero_grad()
@@ -120,7 +115,7 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
 
 def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
-    g = basis_function(d, shape)
+    g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float()
     
     
@@ -135,7 +130,7 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
     
     
     print('Predicting ...')
-    pred, F = model(input, g, None)
+    pred, F = model(input, g)
     pred = pred.squeeze(-1)
     loss = loss_fn(pred, target)
  

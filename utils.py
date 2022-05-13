@@ -35,10 +35,27 @@ def moving_average_standardize(W, n):
   return std_W
 
 
-def basis_function(d, shape):
+def get_quantiles(d, q):
+  r = np.arange(q) / q
+  qr = np.quantile(d, r)
+  idx = [(np.abs(d - i)).argmin() for i in qr] # selected locations
+  return qr, idx 
+
+
+
+
+def basis_function(d, shape, q = None):
     
     m = d.shape[0]
-    sorted_d = np.sort(d)
+    if q is None:
+      sorted_d = np.sort(d)
+    else:
+      qr, idx = get_quantiles(d, q)
+      sorted_idx = np.sort(idx)
+      sorted_d = np.zeros_like(d)
+      sorted_d[sorted_idx] = qr
+
+
     g = []
     for i in range(m):
         if shape == 'monotone_inc': #2
@@ -59,8 +76,16 @@ def basis_function(d, shape):
             g.append(gx)
         else:
           raise ValueError("Unknown shape!")
+    
+    g = np.stack(g, axis=1)
+    if q is not None:
+      g[idx, ] = 0
 
-    return np.stack(g, axis=1)
+    return g
+
+
+
+
 
 def scale(X, max_=1, min_=0):
   """
