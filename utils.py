@@ -38,7 +38,7 @@ def moving_average_standardize(W, n):
 def get_quantiles(d, q):
   r = np.arange(q) / q
   qr = np.quantile(d, r)
-  idx = [(np.abs(d - i)).argmin() for i in qr] # selected locations
+  idx = [(np.abs(d - i)).argmin() for i in qr] # selected indices
   return qr, idx 
 
 
