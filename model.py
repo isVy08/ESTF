@@ -22,11 +22,11 @@ class Model(nn.Module):
         # Shape function
         F = torch.matmul(g, self.weights ** 2) # [N ** 2, T]
         
-        f = F.t().reshape(-1, self.N, self.N) #[T, N, N]
-        f = torch.softmax(f, -1) # [T, N, N]
-        f_ = f[x_i]
+        w = F.t().reshape(-1, self.N, self.N) #[T, N, N]
+        w = torch.softmax(f, -1) # [T, N, N]
+        w_ = w[x_i]
         x_ = torch.swapaxes(x, 1, 2).unsqueeze(-1)
 
-        Z = torch.matmul(f_, x_)
+        Z = torch.matmul(w_, x_)
         Z = Z.sum((1, -1))
         return Z, F

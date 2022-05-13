@@ -94,7 +94,7 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
 
     input, target, input_indices, _ = generate_data(X, p)
     
-    model = Model(N, T, 1.0)
+    model = Model(N, T, 1)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     load_model(model, optimizer, model_path, device)
     loss_fn = nn.MSELoss()
@@ -103,6 +103,7 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
     # Dynamic forecasting
     preds, F = model(input[:T-p, ], input_indices[:T-p, ], g) 
     complete = False
+    
 
     while not complete:
         with torch.no_grad():   
@@ -137,6 +138,9 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
             print('Updating model ...')
             model, optimizer = update(X_new, p, g, epochs, model, optimizer, loss_fn)
     
+    # preds, F = model(input[200:, ], input_indices[:164, ], g)
+    # preds =  torch.cat((target[:200,], preds), dim=0)
+    
     out = preds.t()
     out = torch.cat((X[:, :p], out), dim=-1)
     T = out.shape[1]
@@ -159,9 +163,9 @@ if __name__ == "__main__":
     
 
     train_size = 200
-    batch_size = 10
-    epochs = 1000
-    lr = 0.01
+    batch_size = 50
+    epochs = 100
+    lr = 0.001
     
     p = 1
 

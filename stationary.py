@@ -29,12 +29,12 @@ class Model(nn.Module):
 
     def forward(self, x, g):
         g.requires_grad = False
-        w = torch.matmul(g, self.weights ** 2)
-        f = w.reshape(self.N, self.N) 
-        f = torch.softmax(f, -1) # remove minus sign if decreasing
-        z = f @ x
+        f = torch.matmul(g, self.weights ** 2)
+        w = f.reshape(self.N, self.N) 
+        w = torch.softmax(w, -1) # remove minus sign if decreasing
+        z = w @ x
         z = z.sum(-1)
-        return z, w
+        return z, f
 
 
 loss_fn = nn.MSELoss()
