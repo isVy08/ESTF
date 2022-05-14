@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 class Model(nn.Module):
-    def __init__(self, N, T, gain):
+    def __init__(self, N, T, gain=1.0):
         
         super(Model, self).__init__()
 
@@ -23,7 +23,7 @@ class Model(nn.Module):
         F = torch.matmul(g, self.weights ** 2) # [N ** 2, T]
         
         w = F.t().reshape(-1, self.N, self.N) #[T, N, N]
-        w = torch.softmax(f, -1) # [T, N, N]
+        w = torch.softmax(w, -1) # [T, N, N]
         w_ = w[x_i]
         x_ = torch.swapaxes(x, 1, 2).unsqueeze(-1)
 

@@ -45,9 +45,11 @@ def basis_function(d, shape, q = None):
     
     m = d.shape[0]
     if q is None:
+      print('Applying order statistics ...')
       # order statistics as usual
       sorted_d = np.sort(d)
     else:
+      print('Applying quantiles ...')
       # get quantile values
       qr, idx = get_quantiles(d, q)
       sorted_idx = np.sort(idx)
