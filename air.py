@@ -7,6 +7,7 @@ from tqdm import tqdm
 from model import Model
 from torch.utils.data import DataLoader
 
+threshold = 100
 
 def generate_data(X, p):
     
@@ -27,7 +28,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
     
-    g = basis_function(d, shape)
+    g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float() # [N ** 2, N ** 2]
     
     N, T = X.shape   
@@ -87,7 +88,7 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
             model_path, forecast_path, 
             shape, device):
 
-    g = basis_function(d, shape)
+    g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float()
     
     N, T = X.shape[0], train_size 
@@ -159,13 +160,13 @@ if __name__ == "__main__":
 
     sample_path = 'data/air/sample.pickle'
     data_path = 'data/air/data.npy'
-    model_path = 'model/air.pt'
+    model_path = 'model/air_test.pt'
     
 
     train_size = 200
     batch_size = 50
     epochs = 100
-    lr = 0.001
+    lr = 0.01
     
     p = 1
 
@@ -177,12 +178,12 @@ if __name__ == "__main__":
          
     X_train = X[:, :train_size]
 
-    shape = 'monotone_dec'
+    shape = 'convex_dec'
 
     if sys.argv[1] == 'train':
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast_path = 'output/air.pickle'
+        forecast_path = 'output/air_test.pickle'
         until = 165
         epochs = 100
         h = 1
