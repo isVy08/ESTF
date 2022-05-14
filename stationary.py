@@ -55,9 +55,6 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
     # q is q-quantile value, if q is None, compute order statistics instead
     g = basis_function(d, shape, q = threshold) 
     g = torch.from_numpy(g).float()
-
-    # filter locations
-    idx = np.argwhere(d >= threshold)[:, 0]
     
     #  Intialize model
     N, T = X.shape   
