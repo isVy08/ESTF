@@ -20,7 +20,8 @@ class Model(nn.Module):
         """
     
         # Shape function
-        F = torch.matmul(g, self.weights ** 2) # [N ** 2, T]
+        # F = torch.matmul(g, self.weights ** 2) # [N ** 2, T]
+        F = torch.sparse.mm(g, self.weights ** 2)
         
         w = F.t().reshape(-1, self.N, self.N) #[T, N, N]
         w = torch.softmax(w, -1) # [T, N, N]

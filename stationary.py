@@ -37,7 +37,7 @@ class Model(nn.Module):
         
         g.requires_grad = False
         
-        f = torch.matmul(g, self.weights ** 2)
+        f = torch.sparse.mm(g, self.weights ** 2)
         
         w = f.reshape(self.N, self.N) 
         w = torch.softmax(w, -1) # add minus sign if increasing
@@ -55,6 +55,7 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
     # q is q-quantile value, if q is None, compute order statistics instead
     g = basis_function(d, shape, q = threshold) 
     g = torch.from_numpy(g).float()
+    g = g.to_sparse()
     
     #  Intialize model
     N, T = X.shape   
@@ -114,6 +115,7 @@ def forecast(X, d, p, model_path, forecast_path, shape, device='cpu'):
 
     g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float()
+    g = g.to_sparse()
     
     
     #  Intialize model

@@ -37,6 +37,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
     g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float() # [N ** 2, N ** 2]
+    g = g.to_sparse()
 
     N, T = X.shape   
 
@@ -104,6 +105,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
 
     g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float()
+    g = g.to_sparse()
     
     N, T = X.shape[0], train_size 
 
