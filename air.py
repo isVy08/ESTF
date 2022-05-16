@@ -7,7 +7,7 @@ from tqdm import tqdm
 from model import Model
 from torch.utils.data import DataLoader
 
-threshold = 100
+threshold = 300
 
 def generate_data(X, p):
     
@@ -32,11 +32,12 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     g = torch.from_numpy(g).float() # [N ** 2, N ** 2]
     
     N, T = X.shape   
+    V = 50
 
     # Generate data 
     # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T], alphas: [T]
     input, target, input_indices, _ = generate_data(X, p)
-    indices = list(range(T-p))
+    indices = list(range(T-p-V))
     loader = DataLoader(indices, batch_size=batch_size, shuffle=True)
 
     #  Intialize model
@@ -49,7 +50,9 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         model.to(device)
 
     loss_fn = nn.MSELoss()
-    prev_loss = 1e+10
+    tloss = vloss = 1e+10
+
+    
     for epoch in range(1, epochs + 1):
         train_losses = 0
         for idx in tqdm(loader): 
@@ -57,7 +60,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             x = input[idx, ]
             x_i = input_indices[idx, ]
 
-            pred, F_hat = model(x, x_i, g)
+            pred, _ = model(x, x_i, g)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
             loss.backward()
@@ -65,13 +68,20 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             optimizer.step()
             train_losses += loss.item()
         
+        # Validation
+        pred, _ = model(input[-V:, ], input_indices[-V:, ], g)
+        val_loss = loss_fn(pred, target[-V:, ])
+        
         train_loss = train_losses / len(loader)
-        msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}"
+        msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
         print(msg)
-        if train_loss < prev_loss:
+        if val_loss <= vloss and train_loss < tloss:
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
-            prev_loss = train_loss
+            vloss = val_loss
+            tloss = train_loss
+        elif val_loss > vloss: 
+            break
 
 def update(X_new, p, g, epochs, model, optimizer, loss_fn):
     for _ in tqdm(range(epochs)):
@@ -160,10 +170,15 @@ if __name__ == "__main__":
 
     sample_path = 'data/air/sample.pickle'
     data_path = 'data/air/data.npy'
-    model_path = 'model/air_test.pt'
+    if threshold is None:
+        model_path = f'model/air.pt'
+        forecast_path = f'output/air.pickle'
+    else:
+        model_path = f'model/air_{threshold}.pt'
+        forecast_path = f'output/air_{threshold}.pickle'
     
 
-    train_size = 200
+    train_size = 300
     batch_size = 50
     epochs = 100
     lr = 0.01
@@ -183,8 +198,7 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        forecast_path = 'output/air_test.pickle'
-        until = 165
+        until = 65
         epochs = 100
         h = 1
         forecast(X, d, p, train_size, lr, until, epochs, h, model_path, forecast_path, shape, device='cpu')
