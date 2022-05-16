@@ -187,7 +187,7 @@ if __name__ == "__main__":
     train_size = 300
     batch_size = 50
     epochs = 100
-    lr = 0.01
+    lr = 0.001
     
     p = 1
 
@@ -209,9 +209,9 @@ if __name__ == "__main__":
         h = 1
         forecast(X, d, p, train_size, lr, until, epochs, h, model_path, forecast_path, shape, device='cpu')
     
-    print(process.memory_info().vms)  # in bytes 
     end = time.time()
-    print(f'Computing time: {end - start} seconds')
+    print(f'Start: {time.ctime(start)}, End: {time.ctime(end)}')
+    print(f'{process.memory_info().vms} - Computing time: {end - start} seconds')
 
 
 

@@ -36,7 +36,7 @@ elif dataname == 'air':
     hyperparams_dict["epochs"] = 100
     hyperparams_dict["horizon"] = 1
     hyperparams_dict["history_length"] = 1
-    hyperparams_dict["init_learning_rate"] = 1e-2
+    hyperparams_dict["init_learning_rate"] = 1e-3
 
     
 

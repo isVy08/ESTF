@@ -25,9 +25,6 @@ def train(model, args, log, loss_criterion, optimizer, scheduler):
 
     # Train & validation
     for epoch in range(args.max_epoch):
-        if wait >= args.patience:
-            log_string(log, f'early stop at epoch: {epoch:04d}')
-            break
         # shuffle
         permutation = torch.randperm(num_train)
         trainX = trainX[permutation]
