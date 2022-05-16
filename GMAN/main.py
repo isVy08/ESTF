@@ -82,7 +82,15 @@ parameters = count_parameters(model)
 log_string(log, 'trainable parameters: {:,}'.format(parameters))
 
 if __name__ == '__main__':
+
+    import os, psutil, time
+    process = psutil.Process(os.getpid())
+    start = time.time()
     
     loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler) 
     print(loss_train, loss_val)    
     test(args, log)
+
+    print(process.memory_info().vms)  # in bytes 
+    end = time.time()
+    print(f'Computing time: {end - start} seconds')

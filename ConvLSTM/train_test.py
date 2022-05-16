@@ -71,4 +71,10 @@ def main():
     
 
 if __name__ == '__main__':
+    import os, psutil, time
+    process = psutil.Process(os.getpid())
+    start = time.time()
     main()
+    print(process.memory_info().vms)  # in bytes 
+    end = time.time()
+    print(f'Computing time: {end - start} seconds')

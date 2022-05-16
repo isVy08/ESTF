@@ -7,7 +7,8 @@ from tqdm import tqdm
 from model import Model
 from torch.utils.data import DataLoader
 
-threshold = 300
+
+threshold = None if sys.argv[2] == 'None' else int(sys.argv[2])
 
 def generate_data(X, p):
     
@@ -168,6 +169,11 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
 
 if __name__ == "__main__":
 
+    import psutil, time
+    process = psutil.Process(os.getpid())
+    start = time.time()
+
+
     sample_path = 'data/air/sample.pickle'
     data_path = 'data/air/data.npy'
     if threshold is None:
@@ -202,6 +208,11 @@ if __name__ == "__main__":
         epochs = 100
         h = 1
         forecast(X, d, p, train_size, lr, until, epochs, h, model_path, forecast_path, shape, device='cpu')
+    
+    print(process.memory_info().vms)  # in bytes 
+    end = time.time()
+    print(f'Computing time: {end - start} seconds')
+
 
 
 

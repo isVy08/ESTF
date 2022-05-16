@@ -11,6 +11,9 @@ dataname = sys.argv[2]
 LOGDIR = f"./logs/{dataname}_train"
 DATADIR = f"./data"
 
+import os, psutil, time
+process = psutil.Process(os.getpid())
+start = time.time()
 
 def insert_dict(d, k, v):
     previous = d.get(k, [])
@@ -18,9 +21,6 @@ def insert_dict(d, k, v):
     return d
 
   
-
-
-
 hyperparams_dict["dataset"] = dataname
 
 if dataname == 'mine':
@@ -110,6 +110,10 @@ if sys.argv[1] == 'train':
     print("Average MAPE:", early_stop_mape_h_ave)
     print("Average RMSE:", early_stop_rmse_h_ave)
     file.close()
+
+    print(process.memory_info().vms)  # in bytes 
+    end = time.time()
+    print(f'Computing time: {end - start} seconds')
 
 
 # FULL PREDICTIONS

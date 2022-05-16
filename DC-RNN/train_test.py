@@ -27,6 +27,9 @@ def main(args):
 
 
 if __name__ == '__main__':
+    import os, psutil, time
+    process = psutil.Process(os.getpid())
+    start = time.time()
     parser = argparse.ArgumentParser()
     parser.add_argument('--config_filename', default=None, type=str,
                         help='Configuration filename for restoring the model.')
@@ -35,3 +38,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_filename', default='data/full_predictions.npz')
     args = parser.parse_args()
     main(args)
+    print(process.memory_info().vms)  # in bytes 
+    end = time.time()
+    print(f'Computing time: {end - start} seconds')
