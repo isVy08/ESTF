@@ -1,5 +1,5 @@
 # cp ../DC-RNN/data/nst_sim/adj_mx.pkl ./data/nst_sim/
-for i in {0..30}
+for i in {0..99}
 do
     python -m generate_training_data --output_dir=data/nst_sim/ --traffic_df_filename=../data/non_stationary/h5/s$i.h5 --horizon=1 --history_length=1
     python train_test.py train nst_sim

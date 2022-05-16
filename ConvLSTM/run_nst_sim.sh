@@ -1,5 +1,5 @@
 # # name horizon batch-size epoch
-for i in {0..30}
+for i in {0..99}
 do
     
     python generate_training_data.py --output_dir=data/nst_sim/ --traffic_df_filename=../data/non_stationary/h5/s$i.h5
