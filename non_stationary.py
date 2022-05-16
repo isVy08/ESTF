@@ -7,13 +7,7 @@ from model import Model
 from torch.utils.data import DataLoader
 
 
-train_size = 300
-F_path = sys.argv[4]
-i = int(sys.argv[5])
-F = np.load(F_path)
-F = torch.from_numpy(F[i, :train_size, :].transpose()).float()
-
-threshold = 100
+threshold = None if sys.argv[4] == 'None' else int(sys.argv[4])
 
 
 def generate_data(X, p):
@@ -37,17 +31,20 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
     g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float() # [N ** 2, N ** 2]
-    g = g.to_sparse()
-
+    if threshold is not None and threshold < 200:
+        g = g.to_sparse()
+    
     N, T = X.shape   
+    V = 50
 
     # Generate data 
     # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T], alphas: [T]
     input, target, input_indices, _ = generate_data(X, p)
-    loader = DataLoader(list(range(T-p)), batch_size=batch_size, shuffle=False)
+    indices = list(range(T-p-V))
+    loader = DataLoader(indices, batch_size=batch_size, shuffle=True)
 
     #  Intialize model
-    model = Model(N, T, 0.01)
+    model = Model(N, T, 1)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     if os.path.isfile(model_path):
@@ -56,37 +53,36 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         model.to(device)
 
     loss_fn = nn.MSELoss()
-    prev_loss = 1e+10
-    vloss = 1e+10
+    tloss = vloss = 1e+10
 
+    
     for epoch in range(1, epochs + 1):
         train_losses = 0
-        val_losses = 0
         for idx in tqdm(loader): 
             y = target[idx, ]
             x = input[idx, ]
             x_i = input_indices[idx, ]
 
-            pred, F_hat = model(x, x_i, g)
+            pred, _ = model(x, x_i, g)
             optimizer.zero_grad()
             loss = loss_fn(pred, y)
             loss.backward()
             
             optimizer.step()
             train_losses += loss.item()
-            val_losses += loss_fn(F_hat, F).item()
-
+        
+        # Validation
+        pred, _ = model(input[-V:, ], input_indices[-V:, ], g)
+        val_loss = loss_fn(pred, target[-V:, ])
+        
         train_loss = train_losses / len(loader)
-        val_loss = val_losses / len(loader)
         msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
         print(msg)
-        if val_loss > vloss:
-            break
-        if train_loss < prev_loss and val_loss < vloss:
+        if val_loss <= vloss and train_loss < tloss:
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
-            prev_loss = train_loss
             vloss = val_loss
+            tloss = train_loss
 
 
 def update(X_new, p, g, epochs, model, optimizer, loss_fn):
@@ -105,7 +101,9 @@ def forecast(X, d, p, train_size, lr, until, epochs,
 
     g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float()
-    g = g.to_sparse()
+    if threshold is not None and threshold < 200:
+        g = g.to_sparse()
+
     
     N, T = X.shape[0], train_size 
 
@@ -180,9 +178,10 @@ if __name__ == "__main__":
     X = torch.from_numpy(X).float()
     _, d = load_pickle(sample_path)
     
+    train_size = 300
     batch_size = 300
-    epochs = 500
-    lr = 1e-3
+    epochs = 100
+    lr = 0.001
     p = 1
 
     shape = 'convex_dec'

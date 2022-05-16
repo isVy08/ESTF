@@ -1,4 +1,4 @@
-for i in {0..30}
+for i in {0..99}
 do
-    python stationary.py data/stationary/csv/s$i.csv output/stationary/out$i.pickle model/stationary/model$i.pt data/stationary/csv/F.npy $i 
+    python stationary.py data/stationary/csv/s$i.csv output/stationary/out$i.pickle model/stationary/model$i.pt 100
 done

@@ -31,7 +31,8 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
     g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float() # [N ** 2, N ** 2]
-    g = g.to_sparse()
+    if threshold is not None and threshold < 200:
+        g = g.to_sparse()
     
     N, T = X.shape   
     V = 50
@@ -82,18 +83,16 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
             vloss = val_loss
             tloss = train_loss
-        elif val_loss > vloss: 
-            break
 
 def update(X_new, p, g, epochs, model, optimizer, loss_fn):
     for _ in tqdm(range(epochs)):
         x, y, x_i, _ = generate_data(X_new, p)
-        y_hat, _ = model(x, x_i, g)
+        y_hat, F = model(x, x_i, g)
         optimizer.zero_grad()
         loss = loss_fn(y_hat, y)
         loss.backward(retain_graph=True)        
         optimizer.step()
-    return model, optimizer
+    return model, optimizer, F
 
     
 def forecast(X, d, p, train_size, lr, until, epochs, h, 
@@ -102,7 +101,8 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
 
     g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float()
-    g = g.to_sparse()
+    if threshold is not None and threshold < 200:
+        g = g.to_sparse()
     
     N, T = X.shape[0], train_size 
 
@@ -117,6 +117,7 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
     # Dynamic forecasting
     preds, F = model(input[:T-p, ], input_indices[:T-p, ], g) 
     complete = False
+    Fs = [F]
     
 
     while not complete:
@@ -150,10 +151,9 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
             X_new = preds[-train_size:, ].t()
             X_new.requires_grad = True
             print('Updating model ...')
-            model, optimizer = update(X_new, p, g, epochs, model, optimizer, loss_fn)
+            model, optimizer, F = update(X_new, p, g, epochs, model, optimizer, loss_fn)
+            Fs.append(F)
     
-    # preds, F = model(input[200:, ], input_indices[:164, ], g)
-    # preds =  torch.cat((target[:200,], preds), dim=0)
     
     out = preds.t()
     out = torch.cat((X[:, :p], out), dim=-1)
@@ -162,10 +162,11 @@ def forecast(X, d, p, train_size, lr, until, epochs, h,
     
     loss = loss_fn(out, X)
     print(loss.item())
- 
+
+    F = torch.cat(Fs, 1)
+    F = F[:, :T].detach().numpy()
     out = out.detach().numpy()  
     X = X.detach().numpy()
-    F = F.detach().numpy()
     write_pickle([X, out, F], forecast_path) 
     
 
@@ -195,7 +196,6 @@ if __name__ == "__main__":
 
 
     X = np.load(data_path)
-    # X = normalize(X)
     _, d = load_pickle(sample_path)
     X = torch.from_numpy(X).float()
          
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     
     end = time.time()
     print(f'Start: {time.ctime(start)}, End: {time.ctime(end)}')
-    print(f'{process.memory_info().vms} - Computing time: {end - start} seconds')
+    print(f'{threshold}: {process.memory_info().vms} - Computing time: {end - start} seconds')
 
 
 
