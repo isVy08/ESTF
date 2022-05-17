@@ -1,4 +1,4 @@
-# cp ../DC-RNN/data/air/adj_mx.pkl ./data/air/
+cp ../DC-RNN/data/air/adj_mx.pkl ./data/air/
 
 python -m generate_training_data --output_dir=data/air/ --traffic_df_filename=../data/air/data.h5 --horizon=1 --history_length=1 # specify train size
 python train_test.py train air

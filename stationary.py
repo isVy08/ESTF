@@ -56,7 +56,6 @@ def train(X, d, p, batch_size, epochs, lr, model_path, shape, device='cpu'):
     if threshold is not None and threshold < 200:
         g = g.to_sparse()
     
-    #  Intialize model
     N, T = X.shape   
     V = 50
     

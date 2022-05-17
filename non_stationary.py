@@ -38,12 +38,11 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     V = 50
 
     # Generate data 
-    # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T], alphas: [T]
+    # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T]
     input, target, input_indices, _ = generate_data(X, p)
     indices = list(range(T-p-V))
     loader = DataLoader(indices, batch_size=batch_size, shuffle=True)
 
-    #  Intialize model
     model = Model(N, T, 1)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
@@ -98,6 +97,9 @@ def update(X_new, p, g, epochs, model, optimizer, loss_fn):
 def forecast(X, d, p, train_size, lr, until, epochs, 
             model_path, forecast_path, 
             shape, device):
+    '''
+    Forecasting window h = 1 by default. A more flexible version can be found in main.py
+    '''
 
     g = basis_function(d, shape, q = threshold)
     g = torch.from_numpy(g).float()
@@ -115,7 +117,7 @@ def forecast(X, d, p, train_size, lr, until, epochs,
     loss_fn = nn.MSELoss()
 
     
-    # Dynamic forecasting
+    # Dynamic forecasting with h = 1
     preds, F = model(input[:T+1-p, ], input_indices[:T+1-p, ], g) 
     complete = False
     Fs = [F]

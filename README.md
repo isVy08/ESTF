@@ -10,6 +10,7 @@ STVAR requires Python 3.7+, R 3.6+ and the following packages
 - `tqdm`
 -  `psutil`
 -  `tensorflow`
+- `keras`
 
 Create the following directories
 ```
@@ -40,11 +41,11 @@ The scripts perform training and forecasting altogether.
 ## Real case
 To train the model, for example with `quantile = XX` , run 
 ```
-python air.py train XX
+python main.py train XX
 ```
 After training, the model will be automatically saved in `model/air_XX.pt`. To do forecasting, 
 ```
-python air.py val XX
+python main.py val XX
 ```
 ## Baselines
 In this repo, we provide scripts to run the deep learning baseline models in their respective folders. 

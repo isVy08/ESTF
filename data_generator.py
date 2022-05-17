@@ -3,12 +3,12 @@ import numpy as np
 import pandas as pd
 from utils import *
 """
-Module to transform data to be compatible with baselines
+Module to transform data to .h5 format for running baselines
 """
 
 # Load location indices
-ids, d = load_pickle('data/sample.pickle') # adjust this for air data
-# data_dir = './data/st_sim/'
+ids, d = load_pickle('data/sample.pickle')
+# data_dir = './data/stationary/' or './data/non_stationary/' 
 data_dir = sys.argv[1]
 N = len(ids)
 

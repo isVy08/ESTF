@@ -53,7 +53,7 @@ else:
     if dataset == 'air':
         data = data[:, 1:]
 
-    # Get locations
+    # To get locations with certain conditions i.e., modify function filter() and run
     # ids = filter(data)
     ids = [6, 12, 18, 28, 32, 33, 38, 49, 50, 51, 55, 56, 70, 71, 76, 79, 80, 87, 89, 94, 96, 98, 99, 102, 103, 104, 110, 111, 146, 150]
 
@@ -64,8 +64,6 @@ else:
     data = data[ids, 2:367]
     np.save(f'data/{dataset}/data.npy', data)
 
-# Normalize data
-# data = scale(data)
 
 # Convert to h5 file
 df = pd.DataFrame(data)

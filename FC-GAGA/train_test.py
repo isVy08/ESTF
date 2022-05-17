@@ -20,24 +20,17 @@ def insert_dict(d, k, v):
     d[k] = previous + [v]
     return d
 
-  
+'''
+Default params in model.py : 
+- epochs: 100
+- lr: 0.001
+- history_length = horizon = 1
+'''
+
 hyperparams_dict["dataset"] = dataname
 
-if dataname == 'mine':
-    hyperparams_dict["epochs"] = 10
-    hyperparams_dict["horizon"] = 5
-    hyperparams_dict["history_length"] = 5
-elif dataname in ('sim', 'nst_sim'):
-    hyperparams_dict["epochs"] = 100
-    hyperparams_dict["horizon"] = 1
-    hyperparams_dict["history_length"] = 1
+if dataname  == 'sim':
     hyperparams_dict["init_learning_rate"] = 1e-2
-elif dataname == 'air':
-    hyperparams_dict["epochs"] = 100
-    hyperparams_dict["horizon"] = 1
-    hyperparams_dict["history_length"] = 1
-    hyperparams_dict["init_learning_rate"] = 1e-3
-
     
 
 print("*********************************")

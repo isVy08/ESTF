@@ -7,7 +7,7 @@ from tqdm import tqdm
 from model import Model
 from torch.utils.data import DataLoader
 
-
+# Specify quantile value threshold
 threshold = None if sys.argv[2] == 'None' else int(sys.argv[2])
 
 def generate_data(X, p):
@@ -34,11 +34,13 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
     if threshold is not None and threshold < 200:
         g = g.to_sparse()
     
-    N, T = X.shape   
+    N, T = X.shape  
+
+    # Validation size 
     V = 50
 
     # Generate data 
-    # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T], alphas: [T]
+    # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T]
     input, target, input_indices, _ = generate_data(X, p)
     indices = list(range(T-p-V))
     loader = DataLoader(indices, batch_size=batch_size, shuffle=True)
@@ -53,7 +55,7 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
         model.to(device)
 
     loss_fn = nn.MSELoss()
-    tloss = vloss = 1e+10
+    tloss = vloss = 5.0
 
     
     for epoch in range(1, epochs + 1):

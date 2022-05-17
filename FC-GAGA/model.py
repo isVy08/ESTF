@@ -11,13 +11,13 @@ from keras.callbacks import ModelCheckpoint
 hyperparams_defaults = {
     "dataset": "stvar", 
     "repeat": list(range(1)),
-    "epochs": [10], 
-    "steps_per_epoch": [10],  # 800 METR-LA, 800 PEMS-BAY
+    "epochs": [100], 
+    "steps_per_epoch": [10], 
     "block_layers": 3,
     "hidden_units": 128,
     "blocks": 2,
-    "horizon": 20,
-    "history_length": 20,
+    "horizon": 1,
+    "history_length": 1,
     "init_learning_rate": 1e-3,
     "decay_steps": 3, 
     "decay_rate": 0.5,
