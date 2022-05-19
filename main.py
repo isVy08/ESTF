@@ -54,7 +54,7 @@ def train(X, d, p, threshold, model_path, batch_size, epochs, lr, shape, device=
         model.to(device)
 
     loss_fn = nn.MSELoss()
-    tloss = vloss = 5.0
+    tloss = vloss = 1e+10
 
     
     for epoch in range(1, epochs + 1):

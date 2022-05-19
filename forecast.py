@@ -50,7 +50,7 @@ def forecast(X, d, p, threshold, train_size, lr, until, epochs, h,
             print(f'Forecasting the next {h} steps ...')
             
             # Forecast the next h < T steps, use the last h shape function estimates
-            x = input[T - 1: T + h - 1,]
+            x = input[T - p: T + h - p,]
             hx = x.size(0)
             x_i = torch.arange(train_size-hx, train_size).unsqueeze(-1)
             y_hat, _ = model(x, x_i, g)
@@ -61,14 +61,15 @@ def forecast(X, d, p, threshold, train_size, lr, until, epochs, h,
 
         T = L
         if not complete:
-            model.train()
-            # Update model
-            print('Updating model ...')
-            for i in tqdm(range(epochs)):
-                X_new = preds[-train_size:, ].t()
-                model, optimizer, F = update(X_new, p, g, model, optimizer, loss_fn)
-            
-            Fs.append(F[:, -hx:])
+            with torch.enable_grad():  
+                model.train()
+                # Update model
+                print('Updating model ...')
+                for i in tqdm(range(epochs)):
+                    X_new = preds[-train_size:, ].t()
+                    model, optimizer, F = update(X_new, p, g, model, optimizer, loss_fn)
+                
+                Fs.append(F[:, -hx:])
         
         if remaining == 0 :
             complete = True
