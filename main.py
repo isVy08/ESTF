@@ -7,8 +7,7 @@ from tqdm import tqdm
 from model import Model
 from torch.utils.data import DataLoader
 
-# Specify quantile value threshold
-threshold = None if sys.argv[2] == 'None' else int(sys.argv[2])
+
 
 def generate_data(X, p):
     
@@ -25,7 +24,7 @@ def generate_data(X, p):
     
     return torch.stack(input), torch.stack(target), torch.stack(input_indices), target_indices
 
-def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
+def train(X, d, p, threshold, model_path, batch_size, epochs, lr, shape, device='cpu'):
     
     device = torch.device(device if torch.cuda.is_available() else 'cpu')
     
@@ -86,91 +85,9 @@ def train(X, d, p, model_path, batch_size, epochs, lr, shape, device='cpu'):
             vloss = val_loss
             tloss = train_loss
 
-def update(X_new, p, g, epochs, model, optimizer, loss_fn):
-    for _ in tqdm(range(epochs)):
-        x, y, x_i, _ = generate_data(X_new, p)
-        y_hat, F = model(x, x_i, g)
-        optimizer.zero_grad()
-        loss = loss_fn(y_hat, y)
-        loss.backward(retain_graph=True)        
-        optimizer.step()
-    return model, optimizer, F
-
-    
-def forecast(X, d, p, train_size, lr, until, epochs, h, 
-            model_path, forecast_path, 
-            shape, device):
-
-    g = basis_function(d, shape, q = threshold)
-    g = torch.from_numpy(g).float()
-    if threshold is not None and threshold < 200:
-        g = g.to_sparse()
-    
-    N, T = X.shape[0], train_size 
-
-    input, target, input_indices, _ = generate_data(X, p)
-    
-    model = Model(N, T, 1)
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
-    load_model(model, optimizer, model_path, device)
-    loss_fn = nn.MSELoss()
-
-    
-    # Dynamic forecasting
-    preds, F = model(input[:T-p, ], input_indices[:T-p, ], g) 
-    complete = False
-    Fs = [F]
     
 
-    while not complete:
-        with torch.no_grad():   
-            model.eval()         
-            print(f'Forecasting the next {until} steps ...')
-            t = 0
-            while t < (train_size - p) and not complete:
-                i = t + T
-                # Apply long forecasting
-                x = X.t()[i - p: i, :].reshape(1, N, -1)
-                for _ in range(h):
-                    x_i = torch.arange(t, t + p).unsqueeze(0)
-                    y_hat, _ = model(x, x_i, g)
-                    preds = torch.cat((preds, y_hat))
-                    
-                    L = preds.size(0)
-                    remaining = max(0, until + train_size - L) 
-                    print(f'{remaining} steps until completion')
-                    x = preds[-p:, ].reshape(1, N, -1)
-                    t += 1
 
-                    if L >= until + train_size - p:
-                        complete = True
-                        print('Finished !')
-                        break
-        T = L
-        if not complete:
-            model.train()
-            # Update model
-            X_new = preds[-train_size:, ].t()
-            X_new.requires_grad = True
-            print('Updating model ...')
-            model, optimizer, F = update(X_new, p, g, epochs, model, optimizer, loss_fn)
-            Fs.append(F)
-    
-    
-    out = preds.t()
-    out = torch.cat((X[:, :p], out), dim=-1)
-    T = out.shape[1]
-    X = X[:, :T]
-    
-    loss = loss_fn(out, X)
-    print(loss.item())
-
-    F = torch.cat(Fs, 1)
-    F = F[:, :T].detach().numpy()
-    out = out.detach().numpy()  
-    X = X.detach().numpy()
-    write_pickle([X, out, F], forecast_path) 
-    
 
 if __name__ == "__main__":
 
@@ -178,6 +95,8 @@ if __name__ == "__main__":
     process = psutil.Process(os.getpid())
     start = time.time()
 
+    # Specify quantile value threshold
+    threshold = None if sys.argv[2] == 'None' else int(sys.argv[2])
 
     sample_path = 'data/air/sample.pickle'
     data_path = 'data/air/data.npy'
@@ -206,12 +125,13 @@ if __name__ == "__main__":
     shape = 'convex_dec'
 
     if sys.argv[1] == 'train':
-        train(X_train, d, p, model_path, batch_size, epochs, lr, shape, device='cpu')
+        train(X_train, d, p, threshold, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
         until = 65
         epochs = 100
-        h = 1
-        forecast(X, d, p, train_size, lr, until, epochs, h, model_path, forecast_path, shape, device='cpu')
+        h = until
+        from forecast import forecast, update
+        forecast(X, d, p, threshold, train_size, lr, until, epochs, h, model_path, forecast_path, shape, device='cpu')
     
     end = time.time()
     print(f'Start: {time.ctime(start)}, End: {time.ctime(end)}')
