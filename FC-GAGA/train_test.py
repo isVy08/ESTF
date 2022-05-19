@@ -29,7 +29,7 @@ Default params in model.py :
 
 hyperparams_dict["dataset"] = dataname
 
-if dataname  == 'sim':
+if dataname  in ('sim','air'):
     hyperparams_dict["init_learning_rate"] = 1e-2
     
 

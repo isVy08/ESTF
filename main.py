@@ -35,13 +35,10 @@ def train(X, d, p, threshold, model_path, batch_size, epochs, lr, shape, device=
     
     N, T = X.shape  
 
-    # Validation size 
-    V = 50
-
     # Generate data 
     # input :  [T - 1, N, 1], target: [T - 1, N], input_indices: [T-1, p], target_indices: [T]
     input, target, input_indices, _ = generate_data(X, p)
-    indices = list(range(T-p-V))
+    indices = list(range(T-p))
     loader = DataLoader(indices, batch_size=batch_size, shuffle=True)
 
     #  Intialize model
@@ -54,7 +51,7 @@ def train(X, d, p, threshold, model_path, batch_size, epochs, lr, shape, device=
         model.to(device)
 
     loss_fn = nn.MSELoss()
-    tloss = vloss = 1e+10
+    prev_loss = 1e+10
 
     
     for epoch in range(1, epochs + 1):
@@ -72,18 +69,13 @@ def train(X, d, p, threshold, model_path, batch_size, epochs, lr, shape, device=
             optimizer.step()
             train_losses += loss.item()
         
-        # Validation
-        pred, _ = model(input[-V:, ], input_indices[-V:, ], g)
-        val_loss = loss_fn(pred, target[-V:, ])
-        
         train_loss = train_losses / len(loader)
-        msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}, Val loss: {val_loss:.5f}"
+        msg = f"Epoch: {epoch}, Train loss: {train_loss:.5f}"
         print(msg)
-        if val_loss <= vloss and train_loss < tloss:
+        if train_loss < prev_loss:
             print('Saving model ...')
             torch.save({'model_state_dict': model.state_dict(),'optimizer_state_dict': optimizer.state_dict(),}, model_path)
-            vloss = val_loss
-            tloss = train_loss
+            prev_loss = train_loss
 
     
 
@@ -108,10 +100,10 @@ if __name__ == "__main__":
         forecast_path = f'output/air_{threshold}.pickle'
     
 
-    train_size = 300
+    train_size = 200
     batch_size = 50
     epochs = 100
-    lr = 0.001
+    lr = 0.01
     
     p = 1
 
@@ -127,7 +119,7 @@ if __name__ == "__main__":
     if sys.argv[1] == 'train':
         train(X_train, d, p, threshold, model_path, batch_size, epochs, lr, shape, device='cpu')
     else:
-        until = 65
+        until = 165
         epochs = 100
         h = until
         from forecast import forecast, update
