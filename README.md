@@ -1,4 +1,4 @@
-# STVAR
+# ESTF
 This repo includes codes for reproducing the experiments in the paper Spatio-temporal Forecasting with Shape Functions
 
 ## Dependencies
