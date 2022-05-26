@@ -58,6 +58,9 @@ To generate `.h5` files for simulation and other utils, run
 python data_generator.py data/stationary/ 123
 python data_generator.py data/non_stationary/ 123
 ```
+
+For running statistical baseline models, please refer to `VAR_SPM_MODEL/`.
+
 ## Citation
 If you use the codes or datasets in this repository, please cite our paper.
 
