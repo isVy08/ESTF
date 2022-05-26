@@ -1,4 +1,8 @@
-# Data
+## Dependency
+
+MATLAB 5.0+ is additionally required.
+
+## Data
 
 1. `air_original` is the original data downloaded from the website listed in the draft.
 
@@ -9,7 +13,7 @@
 4. `spatial_domain` contains coordinates used in simulation.
 
 
-# Code 
+## Code 
 
-`error_metric_for_simulation` and `error_real_case` are matlab file for simulation and real case study.
+`error_metric_for_simulation` and `error_real_case` are MATLAB file for simulation and real case study.
 
