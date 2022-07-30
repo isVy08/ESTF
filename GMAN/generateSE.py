@@ -49,7 +49,7 @@ if __name__ == "__main__":
     iter = 1000
     Adj_file = sys.argv[1]
     SE_file = sys.argv[2]
-    sample_file = '../data/air/sample.pickle'
+    sample_file = sys.argv[3]
 
     # Generate adjancency matrix
     generate_adj_mx(Adj_file, sample_file)

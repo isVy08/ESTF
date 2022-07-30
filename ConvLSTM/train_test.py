@@ -58,6 +58,8 @@ def main():
     seq.fit(x['train'], y['train'], batch_size=batch_size, epochs=epochs, 
                 validation_data=(x['val'], y['val']),
                 callbacks = [checkpoint])
+    
+    end_training = time.time()
     # import tensorflow as tf
     # seq = tf.keras.models.load_model(model_path)
     predictions = seq.predict(x['full'], verbose=1, batch_size=batch_size)
@@ -68,13 +70,14 @@ def main():
     prediction=predictions.squeeze(-1)
     
     )
+    return end_training
     
 
 if __name__ == '__main__':
     import os, psutil, time
     process = psutil.Process(os.getpid())
     start = time.time()
-    main()
+    end_training = main()
     print(process.memory_info().vms)  # in bytes 
     end = time.time()
-    print(f'Computing time: {end - start} seconds')
+    print(f'Computing time: {end - start} seconds\nInference time: {end - end_training}')

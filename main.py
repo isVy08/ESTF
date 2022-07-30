@@ -87,17 +87,19 @@ if __name__ == "__main__":
     process = psutil.Process(os.getpid())
     start = time.time()
 
+    dataset = 'so2'
+
     # Specify quantile value threshold
     threshold = None if sys.argv[2] == 'None' else int(sys.argv[2])
 
-    sample_path = 'data/air/sample.pickle'
-    data_path = 'data/air/data.npy'
+    sample_path = f'data/{dataset}/sample.pickle'
+    data_path = f'data/{dataset}/data.npy'
     if threshold is None:
-        model_path = f'model/air.pt'
-        forecast_path = f'output/air.pickle'
+        model_path = f'model/{dataset}.pt'
+        forecast_path = f'output/{dataset}.pickle'
     else:
-        model_path = f'model/air_{threshold}.pt'
-        forecast_path = f'output/air_{threshold}.pickle'
+        model_path = f'model/{dataset}_{threshold}.pt'
+        forecast_path = f'output/{dataset}_{threshold}.pickle'
     
 
     train_size = 200

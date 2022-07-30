@@ -23,7 +23,7 @@ def filter(data):
     return selected
 
 
-dataset = sys.argv[1] # mine / air
+dataset = sys.argv[1] # mine / air / so2
 
 # Select locations and distance
 
@@ -36,6 +36,10 @@ elif dataset == 'air':
     # col 1: index, col 2: lat, col 3: long
     data_path = 'data/air/air.mat'
     location_path = 'data/air/sample.pickle'
+    name = 'realcase_air'
+elif dataset == 'so2':
+    data_path = 'data/so2/so2_Tk.mat'
+    location_path = 'data/so2/sample.pickle'
     name = 'realcase_air'
 else: 
     raise ValueError('Unknown Dataset')
@@ -50,12 +54,14 @@ else:
     matdata = sio.loadmat(data_path)
     data = matdata[name]
 
-    if dataset == 'air':
+    if dataset in ('air', 'so2'):
         data = data[:, 1:]
 
     # To get locations with certain conditions i.e., modify function filter() and run
-    # ids = filter(data)
-    ids = [6, 12, 18, 28, 32, 33, 38, 49, 50, 51, 55, 56, 70, 71, 76, 79, 80, 87, 89, 94, 96, 98, 99, 102, 103, 104, 110, 111, 146, 150]
+    if dataset == 'air':
+        ids = [6, 12, 18, 28, 32, 33, 38, 49, 50, 51, 55, 56, 70, 71, 76, 79, 80, 87, 89, 94, 96, 98, 99, 102, 103, 104, 110, 111, 146, 150]
+    else:
+        ids = filter(data)
 
     d = calDist(data, ids)
     write_pickle((ids, d), location_path)

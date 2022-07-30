@@ -20,10 +20,12 @@ def main(args):
         supervisor = DCRNNSupervisor(adj_mx=adj_mx, **supervisor_config)
 
         supervisor.train()
+        end_training = time.time()
         mean_score, outputs = supervisor.evaluate(args.split)
         np.savez_compressed(args.output_filename, **outputs)
         print("MAE : {}".format(mean_score))
         print('Predictions saved as {}.'.format(args.output_filename))
+    return end_training
 
 
 if __name__ == '__main__':
@@ -37,7 +39,7 @@ if __name__ == '__main__':
     parser.add_argument('--split', default='full', type=str, help='Dataset to evaluate on')
     parser.add_argument('--output_filename', default='data/full_predictions.npz')
     args = parser.parse_args()
-    main(args)
+    end_training = main(args)
     print(process.memory_info().vms)  # in bytes 
     end = time.time()
-    print(f'Computing time: {end - start} seconds')
+    print(f'Computing time: {end - start} seconds\nInference time: {end - end_training}')

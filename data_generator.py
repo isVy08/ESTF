@@ -7,10 +7,11 @@ Module to transform data to .h5 format for running baselines
 """
 
 # Load location indices
-ids, d = load_pickle('data/sample.pickle')
-# data_dir = './data/stationary/' or './data/non_stationary/' 
 data_dir = sys.argv[1]
+
+ids, d = load_pickle(data_dir + 'sample.pickle')
 N = len(ids)
+# data_dir = './data/stationary/' or './data/non_stationary/' 
 
 if '1' in sys.argv[2]:
     # Write .h5 file

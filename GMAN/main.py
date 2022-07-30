@@ -87,10 +87,11 @@ if __name__ == '__main__':
     process = psutil.Process(os.getpid())
     start = time.time()
     
-    loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler) 
-    print(loss_train, loss_val)    
+    # loss_train, loss_val = train(model, args, log, loss_criterion, optimizer, scheduler) 
+    # print(loss_train, loss_val)    
+    end_training = time.time()
     test(args, log)
 
     print(process.memory_info().vms)  # in bytes 
     end = time.time()
-    print(f'Computing time: {end - start} seconds')
+    print(f'Computing time: {end - start} seconds\nInference time: {end - end_training}')

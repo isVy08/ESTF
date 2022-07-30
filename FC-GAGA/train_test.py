@@ -110,8 +110,8 @@ if sys.argv[1] == 'train':
 
 
 # FULL PREDICTIONS
-
 elif sys.argv[1] == 'val':
+    
 
     i = sys.argv[3]
 
@@ -120,6 +120,7 @@ elif sys.argv[1] == 'val':
     metrics = MetricsCallback(dataset=dataset, logdir=LOGDIR)
     best_model = trainer.models[-1].model
     best_model.load_weights(path)
+    start = time.time()
     predictions = best_model.predict({"history": metrics.full_data["x"][...,0], 
                                         "node_id": metrics.full_data["node_id"],
                                         "time_of_day": metrics.full_data["x"][...,0]})
@@ -130,3 +131,7 @@ elif sys.argv[1] == 'val':
         prediction=predictions['targets']
         
         )
+    
+    print(process.memory_info().vms)  # in bytes 
+    end = time.time()
+    print(f'Inference time: {end - start} seconds')

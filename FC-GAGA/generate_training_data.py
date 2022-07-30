@@ -104,7 +104,7 @@ def generate_train_val_test(args):
         num_train = 3000
     elif 'sim' in args.output_dir:
         num_train = 300
-    elif 'air' in args.output_dir:
+    elif 'air' in args.output_dir or 'so2' in args.output_dir :
         num_train = 200
     num_val = num_samples - num_test - num_train
 
