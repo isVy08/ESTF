@@ -43,6 +43,8 @@ def forecast(X, d, p, threshold, train_size, lr, until, epochs, h,
     preds = torch.cat((X.t()[:p, :], preds), dim=0)
     complete = False
     Fs = [F]
+
+
     
     while not complete:
         with torch.no_grad():   
@@ -52,12 +54,18 @@ def forecast(X, d, p, threshold, train_size, lr, until, epochs, h,
             # Forecast the next h < T steps, use the last h shape function estimates
             x = input[T - p: T + h - p,]
             hx = x.size(0)
+            print('Forecasting size:', hx)
             x_i = torch.arange(train_size-hx, train_size).unsqueeze(-1)
             y_hat, _ = model(x, x_i, g)
             preds = torch.cat((preds, y_hat))
             L = preds.size(0)
             remaining = max(0, until + train_size - L)
             print(f'{remaining} steps until completion')
+        
+        if remaining == 0 :
+            complete = True
+            print('Finished !')
+            break   
 
         T = L
         if not complete:
@@ -71,10 +79,7 @@ def forecast(X, d, p, threshold, train_size, lr, until, epochs, h,
                 
                 Fs.append(F[:, -hx:])
         
-        if remaining == 0 :
-            complete = True
-            print('Finished !')
-            break             
+          
     
     out = preds.t()
     

@@ -87,7 +87,7 @@ if __name__ == "__main__":
     process = psutil.Process(os.getpid())
     start = time.time()
 
-    dataset = 'so2'
+    dataset = 'air'
 
     # Specify quantile value threshold
     threshold = None if sys.argv[2] == 'None' else int(sys.argv[2])
@@ -112,6 +112,7 @@ if __name__ == "__main__":
 
     X = np.load(data_path)
     _, d = load_pickle(sample_path)
+    X, _  = normalize(X)
     X = torch.from_numpy(X).float()
          
     X_train = X[:, :train_size]

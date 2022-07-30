@@ -103,4 +103,4 @@ def normalize(X):
   from sklearn.preprocessing import StandardScaler
   scaler = StandardScaler()
   X = scaler.fit_transform(X.transpose()).transpose()
-  return X
+  return X, scaler
