@@ -1,5 +1,5 @@
 # ESTF
-This repo includes codes for reproducing the experiments in the paper Explainable Spatio-temporal Forecasting with Shape Functions.
+This repo includes codes for reproducing the experiments in the paper [Explainable Spatio-temporal Forecasting with Shape Functions](https://openreview.net/forum?id=fARM4P0gAJV).
 
 ## Dependencies
 STVAR requires Python 3.7+, R 3.6+ and the following packages
